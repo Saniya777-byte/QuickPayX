@@ -18,6 +18,10 @@ import walletRoutes from "./routes/walletRoutes";
 
 app.use("/api/wallet", walletRoutes);
 
+import transactionRoutes from "./routes/transactionRoutes";
+
+app.use("/api/transaction", transactionRoutes);
+
 app.get("/", (req: Request, res: Response) => {
   res.send("QuickPayX API running...");
 });
