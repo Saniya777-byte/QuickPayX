@@ -7,13 +7,17 @@ import { apiService } from '../../services/api';
 import { Wallet, Transaction } from '../../types';
 import UserSearch from '../../components/UserSearch';
 import RecentUsers from '../../components/RecentUsers';
+import AnalyticsCard from '../../components/AnalyticsCard';
+import Toast from '../../components/Toast';
 
 export default function DashboardPage() {
   const router = useRouter();
   const { user, logout, loading: authLoading } = useAuth();
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [analytics, setAnalytics] = useState<{ totalSent: number; totalReceived: number; transactionCount: number } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [balanceAnimating, setBalanceAnimating] = useState(false);
   
   // Add money state
   const [addAmount, setAddAmount] = useState('');
@@ -26,6 +30,33 @@ export default function DashboardPage() {
   const [transferAmount, setTransferAmount] = useState('');
   const [transferLoading, setTransferLoading] = useState(false);
   const [transferError, setTransferError] = useState('');
+  const [validationError, setValidationError] = useState('');
+
+  // Toast state
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  // Real-time validation for transfer form
+  useEffect(() => {
+    const errors: string[] = [];
+    
+    if (!receiverId) {
+      errors.push('Please select a recipient');
+    }
+    
+    if (!transferAmount) {
+      errors.push('Please enter an amount');
+    } else {
+      const amount = parseFloat(transferAmount);
+      if (isNaN(amount) || amount <= 0) {
+        errors.push('Amount must be greater than 0');
+      }
+      if (wallet && amount > wallet.balance) {
+        errors.push('Insufficient balance');
+      }
+    }
+    
+    setValidationError(errors[0] || '');
+  }, [receiverId, transferAmount, wallet]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -39,12 +70,14 @@ export default function DashboardPage() {
 
   const loadData = async () => {
     try {
-      const [walletData, transactionsData] = await Promise.all([
+      const [walletData, transactionsData, analyticsData] = await Promise.all([
         apiService.getWallet(),
-        apiService.getTransactionHistory()
+        apiService.getTransactionHistory(),
+        apiService.getAnalytics()
       ]);
       setWallet(walletData);
       setTransactions(transactionsData);
+      setAnalytics(analyticsData);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -68,8 +101,12 @@ export default function DashboardPage() {
       const updatedWallet = await apiService.addMoney({ amount });
       setWallet(updatedWallet);
       setAddAmount('');
+      setBalanceAnimating(true);
+      setTimeout(() => setBalanceAnimating(false), 500);
+      setToast({ message: `Successfully added $${amount}`, type: 'success' });
     } catch (err: any) {
       setAddError(err.message);
+      setToast({ message: err.message, type: 'error' });
     } finally {
       setAddLoading(false);
     }
@@ -98,9 +135,14 @@ export default function DashboardPage() {
       setTransferAmount('');
       setReceiverId('');
       setReceiverName('');
+      setValidationError('');
+      setBalanceAnimating(true);
+      setTimeout(() => setBalanceAnimating(false), 500);
       await loadData(); // Reload to get updated transactions
+      setToast({ message: `Successfully transferred $${amount} to ${receiverName}`, type: 'success' });
     } catch (err: any) {
       setTransferError(err.message);
+      setToast({ message: err.message, type: 'error' });
     } finally {
       setTransferLoading(false);
     }
@@ -110,6 +152,38 @@ export default function DashboardPage() {
     logout();
     router.push('/login');
   };
+
+  // Helper function to group transactions by date
+  const groupTransactionsByDate = (transactions: Transaction[]) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const groups: { [key: string]: Transaction[] } = {
+      'Today': [],
+      'Yesterday': [],
+      'Older': []
+    };
+
+    transactions.forEach(transaction => {
+      const transactionDate = new Date(transaction.createdAt);
+      transactionDate.setHours(0, 0, 0, 0);
+
+      if (transactionDate.getTime() === today.getTime()) {
+        groups['Today'].push(transaction);
+      } else if (transactionDate.getTime() === yesterday.getTime()) {
+        groups['Yesterday'].push(transaction);
+      } else {
+        groups['Older'].push(transaction);
+      }
+    });
+
+    return groups;
+  };
+
+  const groupedTransactions = groupTransactionsByDate(transactions);
 
   if (loading) {
     return (
@@ -160,11 +234,45 @@ export default function DashboardPage() {
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/2"></div>
           <div className="relative">
             <p className="text-white/80 text-sm font-medium mb-2">Total Balance</p>
-            <div className="text-5xl font-bold text-white mb-2">
+            <div className={`text-5xl font-bold text-white mb-2 transition-all duration-300 ${balanceAnimating ? 'scale-110' : 'scale-100'}`}>
               ${wallet?.balance.toFixed(2) || '0.00'}
             </div>
             <p className="text-white/60 text-sm">Available for transfer</p>
           </div>
+        </div>
+
+        {/* Analytics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <AnalyticsCard
+            title="Total Sent"
+            value={`$${analytics?.totalSent.toFixed(2) || '0.00'}`}
+            icon={
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11l5-5m0 0l5 5m-5-5v12" />
+              </svg>
+            }
+            color="rose"
+          />
+          <AnalyticsCard
+            title="Total Received"
+            value={`$${analytics?.totalReceived.toFixed(2) || '0.00'}`}
+            icon={
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 13l-5 5m0 0l-5-5m5 5V6" />
+              </svg>
+            }
+            color="emerald"
+          />
+          <AnalyticsCard
+            title="Transactions"
+            value={analytics?.transactionCount || 0}
+            icon={
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+            }
+            color="blue"
+          />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
@@ -245,6 +353,14 @@ export default function DashboardPage() {
                   {transferError}
                 </div>
               )}
+              {validationError && !transferError && (
+                <div className="bg-yellow-500/20 border border-yellow-500/50 text-yellow-200 px-4 py-3 rounded-xl flex items-center gap-2">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  {validationError}
+                </div>
+              )}
               
               {/* Selected User Chip */}
               {receiverName && (
@@ -298,7 +414,7 @@ export default function DashboardPage() {
               </div>
               <button
                 type="submit"
-                disabled={transferLoading || !receiverId}
+                disabled={transferLoading || !!validationError}
                 className="w-full bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white py-3 px-4 rounded-xl font-semibold hover:from-violet-600 hover:to-fuchsia-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl"
               >
                 {transferLoading ? (
@@ -345,39 +461,55 @@ export default function DashboardPage() {
               <p className="text-gray-400">No transactions yet</p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {transactions.map((transaction) => {
-                const isSent = transaction.sender?._id === user?._id;
+            <div className="space-y-6">
+              {Object.entries(groupedTransactions).map(([groupName, groupTransactions]) => {
+                if (groupTransactions.length === 0) return null;
                 return (
-                  <div key={transaction._id} className="bg-white/5 rounded-xl p-4 border border-white/10 hover:bg-white/10 transition-all">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${isSent ? 'bg-red-500/20' : 'bg-green-500/20'}`}>
-                          <svg className={`w-6 h-6 ${isSent ? 'text-red-400' : 'text-green-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={isSent ? "M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" : "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"} />
-                          </svg>
-                        </div>
-                        <div>
-                          <p className="text-white font-semibold">{isSent ? 'Sent to' : 'Received from'}</p>
-                          <p className="text-gray-400 text-sm">{isSent ? transaction.receiver?.name : transaction.sender?.name}</p>
-                          <p className="text-gray-500 text-xs">{isSent ? transaction.receiver?.email : transaction.sender?.email}</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className={`text-xl font-bold ${isSent ? 'text-red-400' : 'text-green-400'}`}>
-                          {isSent ? '-' : '+'}${transaction.amount.toFixed(2)}
-                        </p>
-                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                          transaction.status === 'completed' ? 'bg-green-500/20 text-green-400' :
-                          transaction.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
-                          'bg-red-500/20 text-red-400'
-                        }`}>
-                          {transaction.status}
-                        </span>
-                        <p className="text-gray-500 text-xs mt-1">
-                          {new Date(transaction.createdAt).toLocaleString()}
-                        </p>
-                      </div>
+                  <div key={groupName}>
+                    <h3 className="text-sm font-semibold text-gray-400 mb-3 uppercase tracking-wider">{groupName}</h3>
+                    <div className="space-y-3">
+                      {groupTransactions.map((transaction) => {
+                        const isSent = transaction.sender?._id === user?._id;
+                        return (
+                          <div key={transaction._id} className="bg-white/5 rounded-xl p-4 border border-white/10 hover:bg-white/10 transition-all">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-4">
+                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${isSent ? 'bg-red-500/20' : 'bg-green-500/20'}`}>
+                                  {isSent ? (
+                                    <svg className="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11l5-5m0 0l5 5m-5-5v12" />
+                                    </svg>
+                                  ) : (
+                                    <svg className="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 13l-5 5m0 0l-5-5m5 5V6" />
+                                    </svg>
+                                  )}
+                                </div>
+                                <div>
+                                  <p className="text-white font-semibold">{isSent ? 'Sent to' : 'Received from'}</p>
+                                  <p className="text-gray-400 text-sm">{isSent ? transaction.receiver?.name : transaction.sender?.name}</p>
+                                  <p className="text-gray-500 text-xs">{isSent ? transaction.receiver?.email : transaction.sender?.email}</p>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <p className={`text-xl font-bold ${isSent ? 'text-red-400' : 'text-green-400'}`}>
+                                  {isSent ? '-' : '+'}${transaction.amount.toFixed(2)}
+                                </p>
+                                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                  transaction.status === 'completed' ? 'bg-green-500/20 text-green-400' :
+                                  transaction.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
+                                  'bg-red-500/20 text-red-400'
+                                }`}>
+                                  {transaction.status}
+                                </span>
+                                <p className="text-gray-500 text-xs mt-1">
+                                  {new Date(transaction.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 );
@@ -386,6 +518,13 @@ export default function DashboardPage() {
           )}
         </div>
       </main>
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 }

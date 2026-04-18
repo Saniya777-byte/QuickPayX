@@ -81,6 +81,10 @@ class ApiService {
   async getAllUsers(): Promise<SearchResult[]> {
     return this.request<SearchResult[]>('/user/all');
   }
+
+  async getAnalytics(): Promise<{ totalSent: number; totalReceived: number; transactionCount: number }> {
+    return this.request<{ totalSent: number; totalReceived: number; transactionCount: number }>('/wallet/analytics');
+  }
 }
 
 export const apiService = new ApiService();

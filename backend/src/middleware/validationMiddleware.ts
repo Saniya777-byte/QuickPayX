@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { IRegisterRequest, ILoginRequest, IAddMoneyRequest, ITransferRequest } from "../types";
+import { isValidObjectId } from "mongoose";
 
 export const validateRegister = (req: Request, res: Response, next: NextFunction) => {
   const { name, email, password } = req.body as IRegisterRequest;
@@ -58,6 +59,10 @@ export const validateTransfer = (req: Request, res: Response, next: NextFunction
 
   if (!receiverId || typeof receiverId !== 'string') {
     return res.status(400).json({ message: "Receiver ID is required" });
+  }
+
+  if (!isValidObjectId(receiverId)) {
+    return res.status(400).json({ message: "Invalid receiver ID format" });
   }
 
   if (!amount || typeof amount !== 'number') {
