@@ -38,4 +38,10 @@ export class UserRepository {
   async findByIds(ids: string[]): Promise<IUser[]> {
     return await User.find({ _id: { $in: ids } }).select('_id name email') as IUser[];
   }
+
+  async findAllExcept(excludeUserId: string): Promise<IUser[]> {
+    return await User.find({ _id: { $ne: excludeUserId } })
+      .select('_id name email')
+      .limit(50) as IUser[];
+  }
 }

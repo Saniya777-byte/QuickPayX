@@ -6,6 +6,10 @@ class UserService {
   private userRepository = new UserRepository();
   private transactionRepository = new TransactionRepository();
 
+  async getAllUsers(currentUserId: string): Promise<IUser[]> {
+    return this.userRepository.findAllExcept(currentUserId);
+  }
+
   async searchUsers(query: string, currentUserId: string): Promise<IUser[]> {
     if (!query || query.length < 2) {
       return [];

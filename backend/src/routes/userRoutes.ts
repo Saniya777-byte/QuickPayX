@@ -1,6 +1,6 @@
 import express from "express";
 import { protect } from "../middleware/authMiddleware";
-import { searchUsers, getRecentUsers } from "../controllers/UserController";
+import { searchUsers, getAllUsers, getRecentUsers } from "../controllers/UserController";
 
 const router = express.Router();
 
@@ -11,6 +11,7 @@ router.get("/profile", protect, (req: any, res) => {
   });
 });
 
+router.get("/all", protect, getAllUsers);
 router.get("/search", protect, searchUsers);
 router.get("/recent", protect, getRecentUsers);
 

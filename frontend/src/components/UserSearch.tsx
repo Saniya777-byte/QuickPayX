@@ -17,18 +17,29 @@ interface UserSearchProps {
 export default function UserSearch({ onUserSelect, selectedUserId }: UserSearchProps) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [allUsers, setAllUsers] = useState<SearchResult[]>([]);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [showDropdown, setShowDropdown] = useState(false);
   const [selectedUser, setSelectedUser] = useState<{ id: string; name: string } | null>(null);
-  const debounceRef = useRef<NodeJS.Timeout>();
+  const debounceRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
+  // Load all users on mount
   useEffect(() => {
-    if (selectedUserId) {
-      // If a user is already selected, we don't need to do anything
-      // The parent component will handle displaying the selected user
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedUserId]);
+    const loadAllUsers = async () => {
+      setInitialLoading(true);
+      try {
+        const users = await apiService.getAllUsers();
+        setAllUsers(users);
+        setResults(users);
+      } catch (error) {
+        console.error('Error loading users:', error);
+      } finally {
+        setInitialLoading(false);
+      }
+    };
+
+    loadAllUsers();
+  }, []);
 
   useEffect(() => {
     if (selectedUser) {
@@ -36,27 +47,23 @@ export default function UserSearch({ onUserSelect, selectedUserId }: UserSearchP
     }
   }, [selectedUser, onUserSelect]);
 
-  const handleSearch = async (searchQuery: string) => {
+  const handleSearch = (searchQuery: string) => {
     setQuery(searchQuery);
     setSelectedUser(null);
 
-    if (searchQuery.length < 2) {
-      setResults([]);
-      setShowDropdown(false);
+    if (!searchQuery || searchQuery.length === 0) {
+      setResults(allUsers);
+      setShowDropdown(true);
       return;
     }
 
-    setLoading(true);
-    try {
-      const users = await apiService.searchUsers(searchQuery);
-      setResults(users);
-      setShowDropdown(true);
-    } catch (error) {
-      console.error('Search error:', error);
-      setResults([]);
-    } finally {
-      setLoading(false);
-    }
+    // Filter from all users locally
+    const filtered = allUsers.filter(user =>
+      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    setResults(filtered);
+    setShowDropdown(true);
   };
 
   const debouncedSearch = (value: string) => {
@@ -65,7 +72,7 @@ export default function UserSearch({ onUserSelect, selectedUserId }: UserSearchP
     }
     debounceRef.current = setTimeout(() => {
       handleSearch(value);
-    }, 400);
+    }, 300);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -82,7 +89,7 @@ export default function UserSearch({ onUserSelect, selectedUserId }: UserSearchP
   const clearSelection = () => {
     setSelectedUser(null);
     setQuery('');
-    setResults([]);
+    setResults(allUsers);
     setShowDropdown(false);
     onUserSelect('', '');
   };
@@ -98,8 +105,8 @@ export default function UserSearch({ onUserSelect, selectedUserId }: UserSearchP
           id="user-search"
           value={query}
           onChange={handleInputChange}
-          onFocus={() => results.length > 0 && setShowDropdown(true)}
-          placeholder="Search by name or email..."
+          onFocus={() => setShowDropdown(true)}
+          placeholder="Search by name or email (all users shown)..."
           className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all"
         />
         {query && (
@@ -115,16 +122,16 @@ export default function UserSearch({ onUserSelect, selectedUserId }: UserSearchP
         )}
       </div>
 
-      {loading && (
+      {initialLoading && (
         <div className="absolute z-10 w-full mt-2 bg-white/10 backdrop-blur-xl rounded-xl border border-white/20 p-4">
           <div className="flex items-center gap-3">
             <div className="w-5 h-5 border-2 border-violet-500 border-t-transparent rounded-full animate-spin"></div>
-            <span className="text-gray-300 text-sm">Searching...</span>
+            <span className="text-gray-300 text-sm">Loading users...</span>
           </div>
         </div>
       )}
 
-      {showDropdown && results.length > 0 && !loading && (
+      {showDropdown && results.length > 0 && !initialLoading && (
         <div className="absolute z-10 w-full mt-2 bg-white/10 backdrop-blur-xl rounded-xl border border-white/20 shadow-2xl overflow-hidden">
           <div className="max-h-64 overflow-y-auto">
             {results.map((user) => (
@@ -149,7 +156,7 @@ export default function UserSearch({ onUserSelect, selectedUserId }: UserSearchP
         </div>
       )}
 
-      {showDropdown && results.length === 0 && !loading && query.length >= 2 && (
+      {showDropdown && results.length === 0 && !initialLoading && query && (
         <div className="absolute z-10 w-full mt-2 bg-white/10 backdrop-blur-xl rounded-xl border border-white/20 p-4">
           <p className="text-gray-400 text-sm text-center">No users found</p>
         </div>

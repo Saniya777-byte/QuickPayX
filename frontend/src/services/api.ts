@@ -77,6 +77,10 @@ class ApiService {
   async getRecentUsers(): Promise<SearchResult[]> {
     return this.request<SearchResult[]>('/user/recent');
   }
+
+  async getAllUsers(): Promise<SearchResult[]> {
+    return this.request<SearchResult[]>('/user/all');
+  }
 }
 
 export const apiService = new ApiService();
