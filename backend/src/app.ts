@@ -1,5 +1,6 @@
 import express, { Request, Response } from "express";
 import cors from "cors";
+import { errorHandler } from "./middleware/errorHandler";
 
 const app = express();
 
@@ -25,5 +26,7 @@ app.use("/api/transaction", transactionRoutes);
 app.get("/", (req: Request, res: Response) => {
   res.send("QuickPayX API running...");
 });
+
+app.use(errorHandler);
 
 export default app;
