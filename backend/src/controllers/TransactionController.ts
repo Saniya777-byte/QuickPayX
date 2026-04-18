@@ -16,3 +16,12 @@ export const transfer = async (req: any, res: Response) => {
     res.status(400).json({ message: error.message });
   }
 };
+
+export const getHistory = async (req: any, res: Response) => {
+  try {
+    const transactions = await TransactionService.getTransactionHistory(req.user);
+    res.json(transactions);
+  } catch (error: any) {
+    res.status(400).json({ message: error.message });
+  }
+};
