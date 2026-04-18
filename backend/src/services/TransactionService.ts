@@ -1,38 +1,70 @@
-import Wallet from "../models/Wallet";
-import Transaction from "../models/Transaction";
+import mongoose from "mongoose";
+import { WalletRepository } from "../repositories/WalletRepository";
+import { TransactionRepository } from "../repositories/TransactionRepository";
+import { UserRepository } from "../repositories/UserRepository";
+import { ITransaction, TransactionStatusType } from "../types";
 
 class TransactionService {
-  async transferMoney(senderId: string, receiverId: string, amount: number) {
+  private walletRepository = new WalletRepository();
+  private transactionRepository = new TransactionRepository();
+  private userRepository = new UserRepository();
+
+  async transferMoney(senderId: string, receiverId: string, amount: number): Promise<ITransaction> {
     if (senderId === receiverId) {
       throw new Error("Cannot send money to yourself");
     }
 
-    const senderWallet = await Wallet.findOne({ userId: senderId });
-    if (!senderWallet || senderWallet.balance < amount) {
-      throw new Error("Insufficient balance");
+    if (amount <= 0) {
+      throw new Error("Amount must be greater than 0");
     }
 
-    const receiverWallet = await Wallet.findOne({ userId: receiverId });
-    if (!receiverWallet) {
+    // Check if receiver exists
+    const receiver = await this.userRepository.findById(receiverId);
+    if (!receiver) {
       throw new Error("Receiver not found");
     }
 
-    // Deduct from sender
-    senderWallet.balance -= amount;
-    await senderWallet.save();
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
-    // Add to receiver
-    receiverWallet.balance += amount;
-    await receiverWallet.save();
+    try {
+      const senderWallet = await this.walletRepository.findByUserId(senderId);
+      if (!senderWallet || senderWallet.balance < amount) {
+        throw new Error("Insufficient balance");
+      }
 
-    // Save transaction
-    const transaction = await Transaction.create({
-      sender: senderId,
-      receiver: receiverId,
-      amount,
-    });
+      const receiverWallet = await this.walletRepository.findByUserId(receiverId);
+      if (!receiverWallet) {
+        throw new Error("Receiver wallet not found");
+      }
 
-    return transaction;
+      // Deduct from sender
+      await this.walletRepository.setBalance(senderId, senderWallet.balance - amount);
+
+      // Add to receiver
+      await this.walletRepository.setBalance(receiverId, receiverWallet.balance + amount);
+
+      // Create transaction with completed status
+      const transaction = await this.transactionRepository.create({
+        sender: new mongoose.Types.ObjectId(senderId),
+        receiver: new mongoose.Types.ObjectId(receiverId),
+        amount,
+        status: 'completed' as TransactionStatusType,
+      });
+
+      await session.commitTransaction();
+      session.endSession();
+
+      return transaction;
+    } catch (error: any) {
+      await session.abortTransaction();
+      session.endSession();
+      throw error;
+    }
+  }
+
+  async getTransactionHistory(userId: string): Promise<ITransaction[]> {
+    return await this.transactionRepository.findByUserId(userId);
   }
 }
 

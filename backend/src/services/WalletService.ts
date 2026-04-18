@@ -1,22 +1,26 @@
-import Wallet from "../models/Wallet";
+import { WalletRepository } from "../repositories/WalletRepository";
+import { IWallet } from "../types";
+import { Types } from "mongoose";
 
 class WalletService {
-  async getWallet(userId: string) {
-    let wallet = await Wallet.findOne({ userId });
+  private walletRepository = new WalletRepository();
+
+  async getWallet(userId: string): Promise<IWallet> {
+    let wallet = await this.walletRepository.findByUserId(userId);
 
     if (!wallet) {
-      wallet = await Wallet.create({ userId });
+      wallet = await this.walletRepository.create({ userId: new Types.ObjectId(userId), balance: 0 });
     }
 
     return wallet;
   }
 
-  async addMoney(userId: string, amount: number) {
-    const wallet = await Wallet.findOneAndUpdate(
-      { userId },
-      { $inc: { balance: amount } },
-      { new: true, upsert: true }
-    );
+  async addMoney(userId: string, amount: number): Promise<IWallet> {
+    const wallet = await this.walletRepository.updateBalance(userId, amount);
+
+    if (!wallet) {
+      throw new Error("Failed to add money");
+    }
 
     return wallet;
   }
