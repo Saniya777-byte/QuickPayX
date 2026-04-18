@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../../context/AuthContext';
 import { apiService } from '../../services/api';
 import { Wallet, Transaction } from '../../types';
+import UserSearch from '../../components/UserSearch';
+import RecentUsers from '../../components/RecentUsers';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -20,6 +22,7 @@ export default function DashboardPage() {
 
   // Transfer state
   const [receiverId, setReceiverId] = useState('');
+  const [receiverName, setReceiverName] = useState('');
   const [transferAmount, setTransferAmount] = useState('');
   const [transferLoading, setTransferLoading] = useState(false);
   const [transferError, setTransferError] = useState('');
@@ -84,7 +87,7 @@ export default function DashboardPage() {
       }
 
       if (!receiverId.trim()) {
-        setTransferError('Please enter a receiver ID');
+        setTransferError('Please select a recipient');
         setTransferLoading(false);
         return;
       }
@@ -92,6 +95,7 @@ export default function DashboardPage() {
       await apiService.transfer({ receiverId, amount });
       setTransferAmount('');
       setReceiverId('');
+      setReceiverName('');
       await loadData(); // Reload to get updated transactions
     } catch (err: any) {
       setTransferError(err.message);
@@ -239,20 +243,38 @@ export default function DashboardPage() {
                   {transferError}
                 </div>
               )}
-              <div>
-                <label htmlFor="receiverId" className="block text-sm font-medium text-gray-300 mb-2">
-                  Receiver ID
-                </label>
-                <input
-                  type="text"
-                  id="receiverId"
-                  value={receiverId}
-                  onChange={(e) => setReceiverId(e.target.value)}
-                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all"
-                  placeholder="Enter receiver ID"
-                  required
-                />
-              </div>
+              
+              {/* Selected User Chip */}
+              {receiverName && (
+                <div className="bg-violet-500/20 border border-violet-500/50 rounded-xl px-4 py-3 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-fuchsia-500 rounded-full flex items-center justify-center text-white font-semibold">
+                      {receiverName.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="text-white font-semibold">{receiverName}</p>
+                      <p className="text-gray-400 text-xs">Selected recipient</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setReceiverId('');
+                      setReceiverName('');
+                    }}
+                    className="text-gray-400 hover:text-white transition-colors"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              )}
+
+              <UserSearch onUserSelect={(id, name) => {
+                setReceiverId(id);
+                setReceiverName(name);
+              }} selectedUserId={receiverId} />
               <div>
                 <label htmlFor="transferAmount" className="block text-sm font-medium text-gray-300 mb-2">
                   Amount
@@ -274,7 +296,7 @@ export default function DashboardPage() {
               </div>
               <button
                 type="submit"
-                disabled={transferLoading}
+                disabled={transferLoading || !receiverId}
                 className="w-full bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white py-3 px-4 rounded-xl font-semibold hover:from-violet-600 hover:to-fuchsia-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl"
               >
                 {transferLoading ? (
@@ -291,6 +313,14 @@ export default function DashboardPage() {
               </button>
             </form>
           </div>
+        </div>
+
+        {/* Recent Users */}
+        <div className="mb-8">
+          <RecentUsers onUserSelect={(id, name) => {
+            setReceiverId(id);
+            setReceiverName(name);
+          }} />
         </div>
 
         {/* Transaction History */}

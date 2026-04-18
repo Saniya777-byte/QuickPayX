@@ -33,4 +33,15 @@ export class TransactionRepository {
       .populate('receiver', 'name email')
       .sort({ createdAt: -1 }) as ITransaction[];
   }
+
+  async getRecentTransactionsByUser(userId: string): Promise<ITransaction[]> {
+    return await Transaction.find({
+      $or: [{ sender: userId }, { receiver: userId }],
+      status: 'completed'
+    })
+    .populate('sender', 'name email')
+    .populate('receiver', 'name email')
+    .sort({ createdAt: -1 })
+    .limit(20) as ITransaction[];
+  }
 }

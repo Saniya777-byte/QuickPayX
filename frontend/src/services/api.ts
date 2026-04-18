@@ -1,5 +1,11 @@
 import { User, Wallet, Transaction, RegisterData, LoginData, TransferData, AddMoneyData } from '../types';
 
+interface SearchResult {
+  _id: string;
+  name: string;
+  email: string;
+}
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 class ApiService {
@@ -62,6 +68,14 @@ class ApiService {
 
   async getTransactionHistory(): Promise<Transaction[]> {
     return this.request<Transaction[]>('/transaction/history');
+  }
+
+  async searchUsers(query: string): Promise<SearchResult[]> {
+    return this.request<SearchResult[]>(`/user/search?q=${encodeURIComponent(query)}`);
+  }
+
+  async getRecentUsers(): Promise<SearchResult[]> {
+    return this.request<SearchResult[]>('/user/recent');
   }
 }
 

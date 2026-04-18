@@ -17,4 +17,25 @@ export class UserRepository {
   async findAll(): Promise<IUser[]> {
     return await User.find() as IUser[];
   }
+
+  async searchByNameOrEmail(query: string, excludeUserId: string): Promise<IUser[]> {
+    const regex = new RegExp(query, 'i');
+    return await User.find({
+      $and: [
+        {
+          $or: [
+            { name: regex },
+            { email: regex }
+          ]
+        },
+        { _id: { $ne: excludeUserId } }
+      ]
+    })
+    .select('_id name email')
+    .limit(10) as IUser[];
+  }
+
+  async findByIds(ids: string[]): Promise<IUser[]> {
+    return await User.find({ _id: { $in: ids } }).select('_id name email') as IUser[];
+  }
 }
