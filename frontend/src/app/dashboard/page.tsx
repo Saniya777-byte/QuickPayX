@@ -10,7 +10,7 @@ import RecentUsers from '../../components/RecentUsers';
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user, logout, loading: authLoading } = useAuth();
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,12 +28,14 @@ export default function DashboardPage() {
   const [transferError, setTransferError] = useState('');
 
   useEffect(() => {
+    if (authLoading) return;
+    
     if (!user) {
       router.push('/login');
       return;
     }
     loadData();
-  }, [user, router]);
+  }, [user, authLoading, router]);
 
   const loadData = async () => {
     try {
