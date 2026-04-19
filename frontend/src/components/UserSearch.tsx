@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { apiService } from '../services/api';
+import { X, Search } from 'lucide-react';
 
 interface SearchResult {
   _id: string;
@@ -96,53 +97,52 @@ export default function UserSearch({ onUserSelect, selectedUserId }: UserSearchP
 
   return (
     <div className="relative">
-      <label htmlFor="user-search" className="block text-sm font-medium text-gray-300 mb-2">
+      <label htmlFor="user-search" className="block text-sm font-medium text-gray-400 mb-2">
         Search User
       </label>
       <div className="relative">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
         <input
           type="text"
           id="user-search"
           value={query}
           onChange={handleInputChange}
           onFocus={() => setShowDropdown(true)}
-          placeholder="Search by name or email (all users shown)..."
-          className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all"
+          placeholder="Search by name or email..."
+          className="w-full pl-12 pr-12 py-3 bg-gray-900/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
         />
         {query && (
           <button
             type="button"
             onClick={clearSelection}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <X className="w-5 h-5" />
           </button>
         )}
       </div>
 
       {initialLoading && (
-        <div className="absolute z-10 w-full mt-2 bg-white/10 backdrop-blur-xl rounded-xl border border-white/20 p-4">
+        <div className="absolute z-10 w-full mt-2 bg-[#1a1f2e] rounded-xl border border-gray-800/50 p-4 shadow-lg">
           <div className="flex items-center gap-3">
-            <div className="w-5 h-5 border-2 border-violet-500 border-t-transparent rounded-full animate-spin"></div>
-            <span className="text-gray-300 text-sm">Loading users...</span>
+            <div className="w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-gray-400 text-sm">Loading users...</span>
           </div>
         </div>
       )}
 
       {showDropdown && results.length > 0 && !initialLoading && (
-        <div className="absolute z-10 w-full mt-2 bg-white/10 backdrop-blur-xl rounded-xl border border-white/20 shadow-2xl overflow-hidden">
+        <div className="absolute z-10 w-full mt-2 bg-[#1a1f2e] rounded-xl border border-gray-800/50 shadow-lg overflow-hidden">
           <div className="max-h-64 overflow-y-auto">
             {results.map((user) => (
               <button
                 key={user._id}
                 type="button"
                 onClick={() => handleUserClick(user)}
-                className="w-full px-4 py-3 text-left hover:bg-white/10 transition-colors border-b border-white/10 last:border-b-0"
+                className="w-full px-4 py-3 text-left hover:bg-gray-800/50 transition-colors border-b border-gray-800/50 last:border-b-0"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-fuchsia-500 rounded-full flex items-center justify-center text-white font-semibold">
+                  <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center text-white font-semibold">
                     {user.name.charAt(0).toUpperCase()}
                   </div>
                   <div>
@@ -157,7 +157,7 @@ export default function UserSearch({ onUserSelect, selectedUserId }: UserSearchP
       )}
 
       {showDropdown && results.length === 0 && !initialLoading && query && (
-        <div className="absolute z-10 w-full mt-2 bg-white/10 backdrop-blur-xl rounded-xl border border-white/20 p-4">
+        <div className="absolute z-10 w-full mt-2 bg-[#1a1f2e] rounded-xl border border-gray-800/50 p-4 shadow-lg">
           <p className="text-gray-400 text-sm text-center">No users found</p>
         </div>
       )}
