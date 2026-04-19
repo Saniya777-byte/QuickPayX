@@ -7,10 +7,14 @@ export const getWallet = async (req: any, res: Response) => {
 };
 
 export const addMoney = async (req: any, res: Response) => {
-  const { amount } = req.body;
+  try {
+    const { amount } = req.body;
 
-  const wallet = await WalletService.addMoney(req.user, amount);
-  res.json(wallet);
+    const wallet = await WalletService.addMoney(req.user, amount);
+    res.json(wallet);
+  } catch (error: any) {
+    res.status(400).json({ message: error.message || 'Failed to add money' });
+  }
 };
 
 export const getAnalytics = async (req: any, res: Response) => {
