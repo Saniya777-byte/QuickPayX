@@ -5,8 +5,14 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../../context/AuthContext';
 import { apiService } from '../../services/api';
 import AppLayout from '../../components/AppLayout';
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { PieChart as PieChartIcon, TrendingUp, TrendingDown, DollarSign, Briefcase } from 'lucide-react';
+import {
+  PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer
+} from 'recharts';
+import {
+  PieChart as PieChartIcon, TrendingUp, TrendingDown, DollarSign,
+  Briefcase, RefreshCw, ArrowUpRight
+} from 'lucide-react';
 
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
 
@@ -27,34 +33,46 @@ interface PortfolioSummary {
   portfolio: PortfolioItem[];
 }
 
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-[#1a1f2e] border border-gray-700/60 rounded-xl px-4 py-3 shadow-2xl">
+        <p className="text-gray-400 text-xs mb-1">{label}</p>
+        <p className="text-white font-bold">
+          ${typeof payload[0].value === 'number' ? payload[0].value.toFixed(2) : '0.00'}
+        </p>
+      </div>
+    );
+  }
+  return null;
+};
+
 export default function PortfolioPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const [summary, setSummary] = useState<PortfolioSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
-    
-    if (!user) {
-      router.push('/');
-      return;
-    }
+    if (!user) { router.push('/'); return; }
     loadPortfolio();
   }, [user, authLoading, router]);
 
-  const loadPortfolio = async () => {
+  const loadPortfolio = async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
     try {
       setError(null);
       const data = await apiService.getPortfolioSummary() as PortfolioSummary;
       setSummary(data);
-    } catch (error: any) {
-      console.error('Error loading portfolio:', error);
-      setError(error.message || 'Failed to load portfolio data');
+    } catch (err: any) {
+      setError(err.message || 'Failed to load portfolio data');
       setSummary(null);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -62,7 +80,7 @@ export default function PortfolioPage() {
     return (
       <AppLayout>
         <div className="flex items-center justify-center h-64">
-          <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+          <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
         </div>
       </AppLayout>
     );
@@ -71,15 +89,24 @@ export default function PortfolioPage() {
   if (error) {
     return (
       <AppLayout>
-        <div className="bg-[#1a1f2e] rounded-2xl p-12 shadow-lg border border-gray-800/50 text-center">
-          <p className="text-red-400 text-lg mb-4">Error loading portfolio</p>
-          <p className="text-gray-500 text-sm mb-6">{error}</p>
-          <button
-            onClick={loadPortfolio}
-            className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2 rounded-xl transition-all"
-          >
-            Retry
-          </button>
+        <div className="space-y-8">
+          <div>
+            <h1 className="text-3xl font-bold text-white mb-1">Portfolio</h1>
+            <p className="text-gray-400">Track your investment performance</p>
+          </div>
+          <div className="bg-[#1a1f2e] rounded-2xl p-16 border border-gray-800/60 text-center">
+            <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+              <TrendingDown className="w-8 h-8 text-red-400" />
+            </div>
+            <p className="text-red-400 text-lg font-semibold mb-2">Error loading portfolio</p>
+            <p className="text-gray-500 text-sm mb-6">{error}</p>
+            <button
+              onClick={() => loadPortfolio()}
+              className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2.5 rounded-xl text-sm font-semibold transition-all"
+            >
+              Try Again
+            </button>
+          </div>
         </div>
       </AppLayout>
     );
@@ -88,7 +115,7 @@ export default function PortfolioPage() {
   const pieData = summary?.portfolio.map(item => ({
     name: item.symbol,
     value: item.quantity * (item.currentPrice || 0)
-  })) || [];
+  })).filter(d => d.value > 0) || [];
 
   const barData = summary?.portfolio.map(item => {
     const currPrice = item.currentPrice || 0;
@@ -99,65 +126,95 @@ export default function PortfolioPage() {
     return {
       name: item.symbol,
       profit: isNaN(profitLoss) ? 0 : profitLoss,
-      percent: investedValue > 0 && !isNaN(profitLoss) ? (profitLoss / investedValue) * 100 : 0
     };
-  }).filter(item => !isNaN(item.profit)) || [];
+  }).filter(d => !isNaN(d.profit)) || [];
+
+  const isProfit = (summary?.profitLoss ?? 0) >= 0;
+  const hasPorfolio = (summary?.portfolio?.length ?? 0) > 0;
+
+  const summaryCards = [
+    {
+      label: 'Virtual Balance',  value: `$${(summary?.virtualBalance ?? 0).toFixed(2)}`,
+      icon: <DollarSign className="w-5 h-5" />, color: 'emerald',
+      sub: 'Available to invest',
+    },
+    {
+      label: 'Total Invested',   value: `$${(summary?.totalInvested ?? 0).toFixed(2)}`,
+      icon: <Briefcase className="w-5 h-5" />, color: 'blue',
+      sub: 'Capital deployed',
+    },
+    {
+      label: 'Current Value',    value: `$${(summary?.currentValue ?? 0).toFixed(2)}`,
+      icon: <PieChartIcon className="w-5 h-5" />, color: 'purple',
+      sub: 'Market value today',
+    },
+    {
+      label: 'Profit / Loss',
+      value: `${isProfit ? '+' : ''}$${(summary?.profitLoss ?? 0).toFixed(2)}`,
+      icon: isProfit ? <TrendingUp className="w-5 h-5" /> : <TrendingDown className="w-5 h-5" />,
+      color: isProfit ? 'emerald' : 'red',
+      sub: `${isProfit ? '+' : ''}${(summary?.profitLossPercent ?? 0).toFixed(2)}% overall`,
+    },
+  ];
+
+  const colorVariants: Record<string, string> = {
+    emerald: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20',
+    blue:    'bg-blue-500/15 text-blue-400 border-blue-500/20',
+    purple:  'bg-purple-500/15 text-purple-400 border-purple-500/20',
+    red:     'bg-red-500/15 text-red-400 border-red-500/20',
+  };
 
   return (
     <AppLayout>
       <div className="space-y-8">
         {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Portfolio</h1>
-          <p className="text-gray-400">Track your investment performance</p>
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-white mb-1">Portfolio</h1>
+            <p className="text-gray-400">Track your paper trading performance</p>
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={() => loadPortfolio(true)}
+              disabled={refreshing}
+              className="flex items-center gap-2 text-gray-400 hover:text-white bg-gray-800/50 hover:bg-gray-700/50 px-3 py-2 rounded-xl border border-gray-700/50 text-sm transition-all disabled:opacity-50"
+            >
+              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+            <button
+              onClick={() => router.push('/invest')}
+              className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl font-semibold text-sm transition-all shadow-lg shadow-emerald-500/20"
+            >
+              <TrendingUp className="w-4 h-4" />
+              Trade
+            </button>
+          </div>
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="bg-[#1a1f2e] rounded-2xl p-6 shadow-lg border border-gray-800/50">
-            <div className="flex items-center gap-3 mb-3">
-              <DollarSign className="w-5 h-5 text-emerald-500" />
-              <p className="text-gray-400 text-sm">Virtual Balance</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+          {summaryCards.map((card, i) => (
+            <div key={i} className={`bg-[#1a1f2e] rounded-2xl p-6 border ${colorVariants[card.color].split(' ').pop()} transition-all`}>
+              <div className={`w-10 h-10 ${colorVariants[card.color]} rounded-xl flex items-center justify-center mb-4 border`}>
+                {card.icon}
+              </div>
+              <p className="text-gray-400 text-sm mb-1">{card.label}</p>
+              <p className={`text-2xl font-bold ${card.color === 'red' ? 'text-red-400' : card.color === 'purple' ? 'text-purple-300' : card.color === 'blue' ? 'text-blue-300' : 'text-emerald-400'}`}>
+                {card.value}
+              </p>
+              <p className="text-gray-600 text-xs mt-1">{card.sub}</p>
             </div>
-            <p className="text-2xl font-bold text-white">${summary?.virtualBalance?.toFixed(2) || '0.00'}</p>
-          </div>
-
-          <div className="bg-[#1a1f2e] rounded-2xl p-6 shadow-lg border border-gray-800/50">
-            <div className="flex items-center gap-3 mb-3">
-              <Briefcase className="w-5 h-5 text-blue-500" />
-              <p className="text-gray-400 text-sm">Total Invested</p>
-            </div>
-            <p className="text-2xl font-bold text-white">${summary?.totalInvested?.toFixed(2) || '0.00'}</p>
-          </div>
-
-          <div className="bg-[#1a1f2e] rounded-2xl p-6 shadow-lg border border-gray-800/50">
-            <div className="flex items-center gap-3 mb-3">
-              <PieChartIcon className="w-5 h-5 text-purple-500" />
-              <p className="text-gray-400 text-sm">Current Value</p>
-            </div>
-            <p className="text-2xl font-bold text-white">${summary?.currentValue?.toFixed(2) || '0.00'}</p>
-          </div>
-
-          <div className="bg-[#1a1f2e] rounded-2xl p-6 shadow-lg border border-gray-800/50">
-            <div className="flex items-center gap-3 mb-3">
-              {(summary?.profitLoss || 0) >= 0 ? <TrendingUp className="w-5 h-5 text-emerald-500" /> : <TrendingDown className="w-5 h-5 text-red-500" />}
-              <p className="text-gray-400 text-sm">Profit/Loss</p>
-            </div>
-            <p className={`text-2xl font-bold ${(summary?.profitLoss || 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-              {(summary?.profitLoss || 0) >= 0 ? '+' : ''}${summary?.profitLoss?.toFixed(2) || '0.00'}
-            </p>
-            <p className={`text-sm ${(summary?.profitLossPercent || 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-              {(summary?.profitLossPercent || 0) >= 0 ? '+' : ''}{summary?.profitLossPercent?.toFixed(2) || '0.00'}%
-            </p>
-          </div>
+          ))}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Portfolio Allocation */}
-          <div className="bg-[#1a1f2e] rounded-2xl p-6 shadow-lg border border-gray-800/50">
-            <h2 className="text-xl font-bold text-white mb-6">Portfolio Allocation</h2>
-            {pieData.length > 0 ? (
-              <div className="h-64">
+        {/* Charts */}
+        {hasPorfolio ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Pie chart */}
+            <div className="bg-[#1a1f2e] rounded-2xl p-6 border border-gray-800/60">
+              <h2 className="text-lg font-bold text-white mb-5">Portfolio Allocation</h2>
+              <div className="h-60">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
@@ -165,109 +222,130 @@ export default function PortfolioPage() {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={({ name, percent }: any) => `${name} ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={80}
-                      fill="#8884d8"
+                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      outerRadius={90}
                       dataKey="value"
+                      stroke="none"
                     >
-                      {pieData.map((entry, index) => (
+                      {pieData.map((_, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
                     <Tooltip
-                      contentStyle={{
-                        backgroundColor: '#1a1f2e',
-                        border: '1px solid #374151',
-                        borderRadius: '8px',
-                        color: '#fff'
-                      }}
-                      formatter={(value: any) => {
-                        if (isNaN(value)) return '$0.00';
-                        if (typeof value === 'number') return `$${value.toFixed(2)}`;
-                        return value;
-                      }}
+                      content={({ active, payload }) =>
+                        active && payload?.length ? (
+                          <div className="bg-[#1a1f2e] border border-gray-700/60 rounded-xl px-4 py-3 shadow-2xl">
+                            <p className="text-gray-400 text-xs mb-1">{payload[0].name}</p>
+                            <p className="text-white font-bold">${Number(payload[0].value).toFixed(2)}</p>
+                          </div>
+                        ) : null
+                      }
                     />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
-            ) : (
-              <div className="h-64 flex items-center justify-center text-gray-500">
-                No portfolio data
+              {/* Legend */}
+              <div className="flex flex-wrap gap-x-4 gap-y-2 mt-4">
+                {pieData.map((entry, i) => (
+                  <div key={i} className="flex items-center gap-1.5 text-xs text-gray-400">
+                    <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                    {entry.name}
+                  </div>
+                ))}
               </div>
-            )}
-          </div>
+            </div>
 
-          {/* Profit/Loss by Stock */}
-          <div className="bg-[#1a1f2e] rounded-2xl p-6 shadow-lg border border-gray-800/50">
-            <h2 className="text-xl font-bold text-white mb-6">Profit/Loss by Stock</h2>
-            {barData && barData.length > 0 ? (
-              <div className="h-64">
+            {/* Bar chart */}
+            <div className="bg-[#1a1f2e] rounded-2xl p-6 border border-gray-800/60">
+              <h2 className="text-lg font-bold text-white mb-5">Profit / Loss by Stock</h2>
+              <div className="h-60">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={barData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                    <XAxis dataKey="name" stroke="#9ca3af" tick={{ fill: '#9ca3af', fontSize: 12 }} />
-                    <YAxis stroke="#9ca3af" tick={{ fill: '#9ca3af', fontSize: 12 }} />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: '#1a1f2e',
-                        border: '1px solid #374151',
-                        borderRadius: '8px',
-                        color: '#fff'
-                      }}
-                      formatter={(value: any) => {
-                        if (isNaN(value)) return '$0.00';
-                        if (typeof value === 'number') return `$${value.toFixed(2)}`;
-                        return value;
-                      }}
-                    />
-                    <Bar dataKey="profit" name="Profit/Loss" fill="#10b981" radius={[4, 4, 0, 0]} />
+                  <BarChart data={barData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" vertical={false} />
+                    <XAxis dataKey="name" stroke="#6b7280" tick={{ fill: '#9ca3af', fontSize: 11 }} axisLine={false} tickLine={false} />
+                    <YAxis stroke="#6b7280" tick={{ fill: '#9ca3af', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => `$${v}`} />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Bar
+                      dataKey="profit"
+                      name="P&L"
+                      radius={[6, 6, 0, 0]}
+                      fill="#10b981"
+                    >
+                      {barData.map((entry, i) => (
+                        <Cell key={i} fill={entry.profit >= 0 ? '#10b981' : '#ef4444'} />
+                      ))}
+                    </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </div>
-            ) : (
-              <div className="h-64 flex items-center justify-center text-gray-500">
-                No portfolio data
-              </div>
-            )}
+            </div>
           </div>
-        </div>
+        ) : (
+          /* Empty state */
+          <div className="bg-[#1a1f2e] rounded-2xl p-16 border border-gray-800/60 text-center">
+            <div className="w-20 h-20 bg-gray-800/50 rounded-full flex items-center justify-center mx-auto mb-5">
+              <PieChartIcon className="w-10 h-10 text-gray-600" />
+            </div>
+            <p className="text-gray-400 text-lg font-semibold mb-2">No holdings yet</p>
+            <p className="text-gray-600 text-sm mb-6">Start paper trading to build your portfolio</p>
+            <button
+              onClick={() => router.push('/invest')}
+              className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2.5 rounded-xl text-sm font-semibold transition-all inline-flex items-center gap-2 shadow-lg shadow-emerald-500/20"
+            >
+              <TrendingUp className="w-4 h-4" />
+              Start Trading
+            </button>
+          </div>
+        )}
 
         {/* Holdings Table */}
-        <div className="bg-[#1a1f2e] rounded-2xl p-6 shadow-lg border border-gray-800/50">
-          <h2 className="text-xl font-bold text-white mb-6">Holdings</h2>
-          {summary?.portfolio && summary.portfolio.length > 0 ? (
+        {hasPorfolio && (
+          <div className="bg-[#1a1f2e] rounded-2xl p-6 border border-gray-800/60">
+            <h2 className="text-lg font-bold text-white mb-5 flex items-center gap-2">
+              <Briefcase className="w-4 h-4 text-gray-400" />
+              Holdings
+            </h2>
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-800/50">
-                    <th className="text-left text-gray-400 font-medium pb-4">Symbol</th>
-                    <th className="text-left text-gray-400 font-medium pb-4">Name</th>
-                    <th className="text-right text-gray-400 font-medium pb-4">Quantity</th>
-                    <th className="text-right text-gray-400 font-medium pb-4">Avg Price</th>
-                    <th className="text-right text-gray-400 font-medium pb-4">Current Price</th>
-                    <th className="text-right text-gray-400 font-medium pb-4">Value</th>
-                    <th className="text-right text-gray-400 font-medium pb-4">Profit/Loss</th>
+                  <tr className="border-b border-gray-800/60">
+                    {['Symbol', 'Name', 'Qty', 'Avg Price', 'Current', 'Value', 'P&L'].map(h => (
+                      <th key={h} className={`pb-3 text-gray-500 font-medium text-xs ${h === 'Symbol' || h === 'Name' ? 'text-left' : 'text-right'}`}>
+                        {h}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
-                <tbody>
-                  {summary.portfolio.map((item) => {
-                    const avgPrice = item.averagePrice || 0;
-                    const currPrice = item.currentPrice || 0;
-                    const currentValue = item.quantity * currPrice;
-                    const investedValue = item.quantity * avgPrice;
-                    const profitLoss = currentValue - investedValue;
-                    const profitLossPercent = investedValue > 0 ? (profitLoss / investedValue) * 100 : 0;
+                <tbody className="divide-y divide-gray-800/30">
+                  {summary!.portfolio.map((item, index) => {
+                    const avg = item.averagePrice || 0;
+                    const curr = item.currentPrice || 0;
+                    const currentVal = item.quantity * curr;
+                    const investedVal = item.quantity * avg;
+                    const pl = currentVal - investedVal;
+                    const plPct = investedVal > 0 ? (pl / investedVal) * 100 : 0;
+                    const isPl = pl >= 0;
 
                     return (
-                      <tr key={item.symbol} className="border-b border-gray-800/30 hover:bg-gray-900/30">
-                        <td className="py-4 text-white font-semibold">{item.symbol}</td>
-                        <td className="py-4 text-gray-400">{item.name}</td>
+                      <tr key={`${item.symbol || 'unknown'}-${index}`} className="hover:bg-gray-900/20 transition-colors">
+                        <td className="py-4">
+                          <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 bg-gray-800 rounded-lg flex items-center justify-center text-gray-300 font-bold text-xs flex-shrink-0">
+                              {(item.symbol || '').slice(0, 2)}
+                            </div>
+                            <span className="text-white font-semibold">{item.symbol || 'Unknown'}</span>
+                          </div>
+                        </td>
+                        <td className="py-4 text-gray-400 max-w-[120px] truncate">{item.name || 'Unknown Asset'}</td>
                         <td className="py-4 text-right text-white">{item.quantity}</td>
-                        <td className="py-4 text-right text-white">${avgPrice.toFixed(2)}</td>
-                        <td className="py-4 text-right text-white">${currPrice.toFixed(2)}</td>
-                        <td className="py-4 text-right text-white font-semibold">${currentValue.toFixed(2)}</td>
-                        <td className={`py-4 text-right font-semibold ${profitLoss >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                          {profitLoss >= 0 ? '+' : ''}${profitLoss.toFixed(2)} ({profitLossPercent >= 0 ? '+' : ''}{profitLossPercent.toFixed(2)}%)
+                        <td className="py-4 text-right text-white">${avg.toFixed(2)}</td>
+                        <td className="py-4 text-right text-white">${curr.toFixed(2)}</td>
+                        <td className="py-4 text-right text-white font-semibold">${currentVal.toFixed(2)}</td>
+                        <td className="py-4 text-right">
+                          <div className={`inline-flex flex-col items-end ${isPl ? 'text-emerald-400' : 'text-red-400'}`}>
+                            <span className="font-bold">{isPl ? '+' : ''}${pl.toFixed(2)}</span>
+                            <span className="text-xs opacity-70">{isPl ? '+' : ''}{plPct.toFixed(2)}%</span>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -275,14 +353,8 @@ export default function PortfolioPage() {
                 </tbody>
               </table>
             </div>
-          ) : (
-            <div className="text-center py-12">
-              <Briefcase className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-              <p className="text-gray-500">No holdings yet</p>
-              <p className="text-gray-600 text-sm mt-2">Start trading to build your portfolio</p>
-            </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </AppLayout>
   );

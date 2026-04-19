@@ -6,16 +6,34 @@ import { AuthProvider } from "../context/AuthContext";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+  display: "swap",
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "QuickPayX - Digital Wallet",
-  description: "Secure digital wallet and transaction management system",
+  title: {
+    default: "QuickPayX — Smart Finance & Paper Trading",
+    template: "%s | QuickPayX",
+  },
+  description:
+    "Master your finances with realistic wallet management and practice investing with virtual money. No risk, real learning.",
+  keywords: ["fintech", "paper trading", "digital wallet", "investment learning", "stock market"],
+  authors: [{ name: "QuickPayX Team" }],
+  openGraph: {
+    title: "QuickPayX — Smart Finance & Paper Trading",
+    description: "Manage your wallet and practice stock trading with virtual money.",
+    type: "website",
+  },
+};
+
+export const viewport = {
+  themeColor: "#10b981",
+  colorScheme: "dark",
 };
 
 export default function RootLayout({
@@ -26,9 +44,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} dark`}
     >
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-screen bg-[#0a0e27] text-white antialiased">
         <AuthProvider>
           {children}
         </AuthProvider>
