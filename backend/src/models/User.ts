@@ -15,6 +15,14 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    bankBalance: {
+      type: Number,
+      default: 10000,
+    },
+    transactionPin: {
+      type: String,
+      default: null,
+    },
   },
   { timestamps: true }
 );

@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../context/AuthContext';
 import { 
@@ -21,7 +22,8 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Clock,
-  CreditCard
+  CreditCard,
+  BookOpen
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -48,28 +50,46 @@ const itemVariants = {
 
 export default function Home() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+
+  useEffect(() => {
+    if (!loading && user) {
+      router.push('/dashboard');
+    }
+  }, [user, loading, router]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#0a0e27] flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  if (user) {
+    return null; // Will redirect
+  }
 
   const features = [
     {
       icon: Wallet,
-      title: 'Wallet Management',
-      description: 'Seamlessly manage your digital wallet with real-time balance updates and transaction tracking.'
-    },
-    {
-      icon: Zap,
-      title: 'Instant Transfers',
-      description: 'Send and receive money instantly with our lightning-fast payment processing system.'
-    },
-    {
-      icon: Shield,
-      title: 'Secure Authentication',
-      description: 'Bank-grade security with JWT authentication and encrypted data transmission.'
+      title: 'Smart Wallet',
+      description: 'Manage your finances with realistic bank-to-wallet transfers and comprehensive balance tracking.'
     },
     {
       icon: TrendingUp,
-      title: 'Transaction Analytics',
-      description: 'Track your spending patterns with detailed analytics and insights.'
+      title: 'Paper Trading',
+      description: 'Practice investing with virtual money - no risk, real learning experience.'
+    },
+    {
+      icon: BookOpen,
+      title: 'Investment Learning',
+      description: 'Master stock market fundamentals with interactive lessons and guides.'
+    },
+    {
+      icon: Shield,
+      title: 'AI-Powered Security',
+      description: 'Advanced fraud detection and real-time transaction monitoring for peace of mind.'
     }
   ];
 
@@ -77,17 +97,17 @@ export default function Home() {
     {
       step: '01',
       title: 'Create Account',
-      description: 'Sign up in seconds with just your email and create your digital wallet.'
+      description: 'Sign up in seconds and get $10,000 virtual balance for paper trading.'
     },
     {
       step: '02',
-      title: 'Add Money',
-      description: 'Easily add funds to your wallet using secure payment methods.'
+      title: 'Learn & Practice',
+      description: 'Master investment fundamentals with interactive lessons and practice with virtual money.'
     },
     {
       step: '03',
-      title: 'Send & Receive',
-      description: 'Transfer money to anyone instantly or receive payments from friends and family.'
+      title: 'Build Portfolio',
+      description: 'Track your performance, analyze your strategies, and become a smart investor.'
     }
   ];
 
@@ -112,20 +132,20 @@ export default function Home() {
   const testimonials = [
     {
       name: 'Sarah Johnson',
-      role: 'Small Business Owner',
-      content: 'QuickPayX has transformed how I handle payments. The instant transfers are a game-changer for my business.',
+      role: 'Aspiring Investor',
+      content: 'The paper trading feature helped me learn investing without risking real money. The learning modules are incredibly helpful.',
       rating: 5
     },
     {
       name: 'Michael Chen',
-      role: 'Freelance Developer',
-      content: 'The clean interface and security features give me peace of mind. Best digital wallet I\'ve used.',
+      role: 'Finance Student',
+      content: 'QuickPayX gives me real-world experience with wallet management and stock trading. Perfect for learning fintech concepts.',
       rating: 5
     },
     {
       name: 'Emily Rodriguez',
-      role: 'Marketing Manager',
-      content: 'Love the transaction analytics! It helps me track my expenses and manage my budget effectively.',
+      role: 'Young Professional',
+      content: 'The realistic financial flow and investment analytics helped me understand money management better than any textbook.',
       rating: 5
     }
   ];
@@ -180,19 +200,19 @@ export default function Home() {
       >
         <div className="relative max-w-7xl mx-auto px-6 sm:px-8 lg:px-8 text-center">
           <motion.div variants={itemVariants} className="inline-flex items-center gap-2 bg-gray-800/50 rounded-full px-4 py-2 mb-8 border border-gray-700/50">
-            <Zap className="w-4 h-4 text-emerald-500" />
-            <span className="text-gray-300 text-sm font-medium">Fast, Secure Digital Payments</span>
+            <TrendingUp className="w-4 h-4 text-emerald-500" />
+            <span className="text-gray-300 text-sm font-medium">Fintech + Investment Learning Platform</span>
           </motion.div>
           
           <motion.h1 variants={itemVariants} className="text-5xl lg:text-7xl font-bold text-white mb-6 leading-tight">
-            The Future of<br />
+            Smart Finance &<br />
             <span className="text-emerald-500">
-              Digital Payments
+              Paper Trading
             </span>
           </motion.h1>
           
           <motion.p variants={itemVariants} className="text-xl text-gray-400 mb-10 max-w-2xl mx-auto">
-            Experience seamless money transfers with QuickPayX. Send, receive, and manage your finances with bank-grade security.
+            Master your finances with realistic wallet management and practice investing with virtual money. No risk, real learning.
           </motion.p>
           
           <motion.div variants={itemVariants} className="flex flex-col sm:flex-row gap-4 justify-center">

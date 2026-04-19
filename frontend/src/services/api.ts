@@ -85,6 +85,115 @@ class ApiService {
   async getAnalytics(): Promise<{ totalSent: number; totalReceived: number; transactionCount: number }> {
     return this.request<{ totalSent: number; totalReceived: number; transactionCount: number }>('/wallet/analytics');
   }
+
+  // Analytics endpoints
+  async getAnalyticsSummary() {
+    return this.request('/analytics/summary');
+  }
+
+  async getSpendingByCategory() {
+    return this.request('/analytics/spending-by-category');
+  }
+
+  async getMonthlyTrends(months?: number) {
+    const query = months ? `?months=${months}` : '';
+    return this.request(`/analytics/monthly-trends${query}`);
+  }
+
+  async getAnalyticsInsights() {
+    return this.request('/analytics/insights');
+  }
+
+  async getTopContacts(limit?: number) {
+    const query = limit ? `?limit=${limit}` : '';
+    return this.request(`/analytics/top-contacts${query}`);
+  }
+
+  // Savings Goals endpoints
+  async createGoal(data: { name: string; targetAmount: number; deadline?: string; category?: string }) {
+    return this.request('/savings-goals', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getSavingsGoals() {
+    return this.request('/savings-goals');
+  }
+
+  async getSavingsGoalSummary() {
+    return this.request('/savings-goals/summary');
+  }
+
+  async updateGoal(id: string, data: any) {
+    return this.request(`/savings-goals/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteGoal(id: string) {
+    return this.request(`/savings-goals/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async addGoalProgress(id: string, amount: number) {
+    return this.request(`/savings-goals/${id}/progress`, {
+      method: 'POST',
+      body: JSON.stringify({ amount }),
+    });
+  }
+
+  // Investment endpoints
+  async getInvestment() {
+    return this.request('/investment');
+  }
+
+  async buyStock(symbol: string, name: string, quantity: number, price: number) {
+    return this.request('/investment/buy', {
+      method: 'POST',
+      body: JSON.stringify({ symbol, name, quantity, price }),
+    });
+  }
+
+  async sellStock(symbol: string, quantity: number, price: number) {
+    return this.request('/investment/sell', {
+      method: 'POST',
+      body: JSON.stringify({ symbol, quantity, price }),
+    });
+  }
+
+  async getPortfolioSummary() {
+    return this.request('/investment/portfolio-summary');
+  }
+
+  // Financial Insights endpoints
+  async getInsights() {
+    return this.request('/insights');
+  }
+
+  async askInsightQuery(query: string) {
+    return this.request('/insights/query', {
+      method: 'POST',
+      body: JSON.stringify({ query }),
+    });
+  }
+
+  // Security endpoints
+  async setTransactionPin(pin: string) {
+    return this.request('/security/pin', {
+      method: 'POST',
+      body: JSON.stringify({ pin }),
+    });
+  }
+
+  async validateTransactionPin(pin: string) {
+    return this.request('/security/pin/validate', {
+      method: 'POST',
+      body: JSON.stringify({ pin }),
+    });
+  }
 }
 
 export const apiService = new ApiService();

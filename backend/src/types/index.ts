@@ -6,6 +6,8 @@ export interface IUser {
   name: string;
   email: string;
   password: string;
+  bankBalance: number;
+  transactionPin?: string | null;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -32,6 +34,10 @@ export interface ITransaction {
   receiver?: Types.ObjectId;
   amount: number;
   status?: TransactionStatusType;
+  category?: string;
+  description?: string;
+  isSuspicious?: boolean;
+  fraudReason?: string;
   createdAt?: Date;
   updatedAt?: Date;
 }

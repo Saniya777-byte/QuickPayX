@@ -44,4 +44,20 @@ export class UserRepository {
       .select('_id name email')
       .limit(50) as IUser[];
   }
+
+  async updateBankBalance(userId: string, newBalance: number): Promise<IUser | null> {
+    return await User.findByIdAndUpdate(
+      userId,
+      { bankBalance: newBalance },
+      { new: true }
+    ) as IUser | null;
+  }
+
+  async update(userId: string, updateData: Partial<IUser>): Promise<IUser | null> {
+    return await User.findByIdAndUpdate(
+      userId,
+      updateData,
+      { new: true }
+    ) as IUser | null;
+  }
 }

@@ -1,8 +1,9 @@
 import * as dotenv from "dotenv";
 import app from "./app";
 import { connectDB } from "./config/db";
+import path from "path";
 
-dotenv.config();
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
 // connectDB();
 

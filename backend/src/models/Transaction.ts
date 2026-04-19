@@ -19,6 +19,22 @@ const transactionSchema = new mongoose.Schema(
       enum: ['pending', 'completed', 'failed'],
       default: 'pending',
     },
+    category: {
+      type: String,
+      enum: ['food', 'bills', 'travel', 'shopping', 'entertainment', 'health', 'education', 'transfer', 'other'],
+      default: 'other',
+    },
+    description: {
+      type: String,
+      default: '',
+    },
+    isSuspicious: {
+      type: Boolean,
+      default: false,
+    },
+    fraudReason: {
+      type: String,
+    },
   },
   { timestamps: true }
 );
