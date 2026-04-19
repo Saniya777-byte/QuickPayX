@@ -26,6 +26,34 @@ import transactionRoutes from "./routes/transactionRoutes";
 
 app.use("/api/transaction", transactionRoutes);
 
+import analyticsRoutes from "./routes/analyticsRoutes";
+
+app.use("/api/analytics", analyticsRoutes);
+
+import savingsGoalRoutes from "./routes/savingsGoalRoutes";
+
+app.use("/api/savings-goals", savingsGoalRoutes);
+
+import investmentRoutes from "./routes/investmentRoutes";
+
+app.use("/api/investment", investmentRoutes);
+
+import financialInsightsRoutes from "./routes/financialInsightsRoutes";
+
+app.use("/api/insights", financialInsightsRoutes);
+
+import securityRoutes from "./routes/securityRoutes";
+
+app.use("/api/security", securityRoutes);
+
+import stockDataRoutes from "./routes/stockDataRoutes";
+
+app.use("/api/stocks", stockDataRoutes);
+
+import newsRoutes from "./routes/newsRoutes";
+
+app.use("/api/news", newsRoutes);
+
 app.get("/", (req: Request, res: Response) => {
   res.send("QuickPayX API running...");
 });
