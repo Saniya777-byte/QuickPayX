@@ -9,6 +9,7 @@ export interface Wallet {
   _id: string;
   userId: string;
   balance: number;
+  bankBalance: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -27,6 +28,8 @@ export interface Transaction {
   };
   amount: number;
   status: 'pending' | 'completed' | 'failed';
+  category?: string;
+  description?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -45,8 +48,15 @@ export interface LoginData {
 export interface TransferData {
   receiverId: string;
   amount: number;
+  skipFraudCheck?: boolean;
 }
 
 export interface AddMoneyData {
   amount: number;
+}
+
+export interface SearchResult {
+  _id: string;
+  name: string;
+  email: string;
 }
