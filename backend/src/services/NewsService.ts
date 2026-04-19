@@ -33,7 +33,7 @@ class NewsService {
           sources: 'bloomberg,reuters,financial-times,cnbc,wsj,forbes',
           language: 'en',
           sortBy: 'publishedAt',
-          pageSize: 20,
+          pageSize: 100,
           apiKey: this.apiKey
         }
       });
