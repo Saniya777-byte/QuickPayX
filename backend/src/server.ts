@@ -1,16 +1,22 @@
-import * as dotenv from "dotenv";
-import app from "./app";
-import { connectDB } from "./config/db";
-import path from "path";
+import express from "express";
+import mongoose from "mongoose";
 
-dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+const app = express();
 
-// connectDB();
-
-console.log("Connecting to DB...");
-connectDB();
-const PORT = process.env.PORT || 5000;
-
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+app.get("/", (req, res) => {
+  res.send("API is running ");
 });
+
+app.get("/test-db", async (req, res) => {
+  try {
+    const collections = await mongoose.connection.db
+      .listCollections()
+      .toArray();
+
+    res.json({ success: true, collections });
+  } catch (err) {
+    res.status(500).json({ error: err });
+  }
+});
+
+export default app;
