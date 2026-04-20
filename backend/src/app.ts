@@ -59,35 +59,14 @@ app.get("/", (req: Request, res: Response) => {
   res.send("API is running");
 });
 
-app.get("/test-db", async (req: Request, res: Response) => {
-  try {
-    const connectionState = mongoose.connection.readyState;
-    const states: { [key: number]: string } = {
-      0: 'disconnected',
-      1: 'connected',
-      2: 'connecting',
-      3: 'disconnecting'
-    };
-    const isConnected = connectionState === 1;
-    let collections: string[] = [];
-    if (isConnected) {
-      const db = mongoose.connection.db;
-      if (db) {
-        const collectionsList = await db.listCollections().toArray();
-        collections = collectionsList.map(col => col.name);
-      }
-    }
-    res.json({
-      success: isConnected,
-      status: states[connectionState] || 'unknown',
-      collections
-    });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
+app.get("/test-db", (req: Request, res: Response) => {
+  const states: { [key: number]: string } = {
+    0: 'disconnected',
+    1: 'connected',
+    2: 'connecting',
+    3: 'disconnecting'
+  };
+  res.json({ status: states[mongoose.connection.readyState] || 'unknown' });
 });
 
 app.use(errorHandler);
