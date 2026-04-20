@@ -55,7 +55,7 @@ import newsRoutes from "./routes/newsRoutes";
 app.use("/api/news", newsRoutes);
 
 app.get("/", (req: Request, res: Response) => {
-  res.send("QuickPayX API running...");
+  res.send("API is running");
 });
 
 app.use(errorHandler);

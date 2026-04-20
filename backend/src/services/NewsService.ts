@@ -26,14 +26,12 @@ class NewsService {
     }
 
     try {
-      // Fetch market and business news
-      const response = await axios.get(`${this.baseUrl}/everything`, {
+      // Fetch market and business news using top-headlines endpoint
+      const response = await axios.get(`${this.baseUrl}/top-headlines`, {
         params: {
-          q: 'stock market OR trading OR investing OR cryptocurrency OR forex',
-          sources: 'bloomberg,reuters,financial-times,cnbc,wsj,forbes',
+          category: 'business',
           language: 'en',
-          sortBy: 'publishedAt',
-          pageSize: 100,
+          pageSize: 20,
           apiKey: this.apiKey
         }
       });
@@ -149,6 +147,42 @@ class NewsService {
         title: 'Central Banks Diverge on Policy as Economic Outlook Varies',
         description: 'Major central banks take different approaches to monetary policy based on regional economic conditions.',
         source: 'Financial Times',
+        publishedAt: new Date().toISOString(),
+        url: '#',
+        category: 'forex'
+      },
+      {
+        id: '9',
+        title: 'S&P 500 Hits New All-Time High Amid Economic Optimism',
+        description: 'The benchmark index reaches unprecedented levels as investors bet on sustained economic growth.',
+        source: 'CNBC',
+        publishedAt: new Date().toISOString(),
+        url: '#',
+        category: 'market'
+      },
+      {
+        id: '10',
+        title: 'Trading Volume Surge Indicates Market Bullish Sentiment',
+        description: 'Record trading volumes across major exchanges suggest strong investor confidence in market direction.',
+        source: 'Bloomberg',
+        publishedAt: new Date().toISOString(),
+        url: '#',
+        category: 'trading'
+      },
+      {
+        id: '11',
+        title: 'Ethereum ETF Approval Expected Soon',
+        description: 'Regulatory approval for spot Ethereum ETFs could drive significant inflows into cryptocurrency markets.',
+        source: 'CoinDesk',
+        publishedAt: new Date().toISOString(),
+        url: '#',
+        category: 'crypto'
+      },
+      {
+        id: '12',
+        title: 'Euro Weakens Against Dollar as ECB Holds Rates Steady',
+        description: 'The European Central Bank maintains current interest rates, causing the euro to decline against the US dollar.',
+        source: 'ForexLive',
         publishedAt: new Date().toISOString(),
         url: '#',
         category: 'forex'
