@@ -1,36 +1,46 @@
-import SavingsGoal from "../models/SavingsGoal";
+import { prisma } from '../lib/prisma';
 
 class SavingsGoalRepository {
   async findByUserId(userId: string) {
-    return await SavingsGoal.find({ userId }).sort({ createdAt: -1 });
+    return await prisma.savingsGoal.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' }
+    });
   }
 
   async findById(id: string) {
-    return await SavingsGoal.findById(id);
+    return await prisma.savingsGoal.findUnique({ where: { id } });
   }
 
   async create(data: any) {
-    return await SavingsGoal.create(data);
+    return await prisma.savingsGoal.create({ data });
   }
 
   async update(id: string, data: any) {
-    return await SavingsGoal.findByIdAndUpdate(id, data, { new: true });
+    return await prisma.savingsGoal.update({
+      where: { id },
+      data
+    });
   }
 
   async delete(id: string) {
-    return await SavingsGoal.findByIdAndDelete(id);
+    return await prisma.savingsGoal.delete({ where: { id } });
   }
 
   async addProgress(id: string, amount: number) {
-    const goal = await SavingsGoal.findById(id);
+    const goal = await prisma.savingsGoal.findUnique({ where: { id } });
     if (!goal) {
       throw new Error('Savings goal not found');
     }
-    goal.currentAmount += amount;
-    if (goal.currentAmount >= goal.targetAmount) {
-      goal.status = 'completed';
-    }
-    return await goal.save();
+    const newAmount = goal.currentAmount + amount;
+    const newStatus = newAmount >= goal.targetAmount ? 'completed' : goal.status;
+    return await prisma.savingsGoal.update({
+      where: { id },
+      data: {
+        currentAmount: newAmount,
+        status: newStatus
+      }
+    });
   }
 }
 

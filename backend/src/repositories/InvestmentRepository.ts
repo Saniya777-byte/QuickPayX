@@ -1,26 +1,27 @@
-import Investment from '../models/Investment';
-import mongoose from 'mongoose';
+import { prisma } from '../lib/prisma';
 
 export class InvestmentRepository {
   async findByUserId(userId: string) {
-    let investment = await Investment.findOne({ userId });
-    if (!investment) {
-      investment = await Investment.create({ userId: new mongoose.Types.ObjectId(userId) });
-    }
+    const investment = await prisma.investment.upsert({
+      where: { userId },
+      update: {},
+      create: { userId, virtualBalance: 10000 },
+      include: { portfolio: true }
+    });
     return investment;
   }
 
   async updateVirtualBalance(userId: string, newBalance: number) {
-    return await Investment.findOneAndUpdate(
-      { userId },
-      { virtualBalance: newBalance },
-      { new: true, upsert: true }
-    );
+    return await prisma.investment.upsert({
+      where: { userId },
+      update: { virtualBalance: newBalance },
+      create: { userId, virtualBalance: newBalance }
+    });
   }
 
   async addPortfolioItem(userId: string, item: any) {
     const investment = await this.findByUserId(userId);
-    const existingItem = investment.portfolio.find(
+    const existingItem = investment.portfolio?.find(
       (p: any) => p.symbol === item.symbol
     );
 
@@ -30,30 +31,32 @@ export class InvestmentRepository {
       const totalCost = (existingItem.quantity * existingItem.averagePrice) + (item.quantity * item.averagePrice);
       const newAveragePrice = totalCost / totalQuantity;
 
-      return await Investment.findOneAndUpdate(
-        { userId, 'portfolio.symbol': item.symbol },
-        {
-          $set: {
-            'portfolio.$.quantity': totalQuantity,
-            'portfolio.$.averagePrice': newAveragePrice,
-            'portfolio.$.currentPrice': item.currentPrice,
-          }
-        },
-        { new: true }
-      );
+      return await prisma.portfolioItem.update({
+        where: { id: existingItem.id },
+        data: {
+          quantity: totalQuantity,
+          averagePrice: newAveragePrice,
+          currentPrice: item.currentPrice,
+        }
+      });
     } else {
       // Add new item
-      return await Investment.findOneAndUpdate(
-        { userId },
-        { $push: { portfolio: item } },
-        { new: true, upsert: true }
-      );
+      return await prisma.portfolioItem.create({
+        data: {
+          investmentId: investment.id,
+          symbol: item.symbol,
+          name: item.name,
+          quantity: item.quantity,
+          averagePrice: item.averagePrice,
+          currentPrice: item.currentPrice,
+        }
+      });
     }
   }
 
   async removePortfolioItem(userId: string, symbol: string, quantity: number) {
     const investment = await this.findByUserId(userId);
-    const item = investment.portfolio.find((p: any) => p.symbol === symbol);
+    const item = investment.portfolio?.find((p: any) => p.symbol === symbol);
 
     if (!item) {
       throw new Error('Item not found in portfolio');
@@ -61,45 +64,43 @@ export class InvestmentRepository {
 
     if (quantity >= item.quantity) {
       // Remove entire item
-      return await Investment.findOneAndUpdate(
-        { userId },
-        { $pull: { portfolio: { symbol } } },
-        { new: true }
-      );
+      return await prisma.portfolioItem.delete({
+        where: { id: item.id }
+      });
     } else {
       // Partial sell
       const newQuantity = item.quantity - quantity;
-      return await Investment.findOneAndUpdate(
-        { userId, 'portfolio.symbol': symbol },
-        { $set: { 'portfolio.$.quantity': newQuantity } },
-        { new: true }
-      );
+      return await prisma.portfolioItem.update({
+        where: { id: item.id },
+        data: { quantity: newQuantity }
+      });
     }
   }
 
   async updatePortfolioItem(userId: string, symbol: string, updates: any) {
-    return await Investment.findOneAndUpdate(
-      { userId, 'portfolio.symbol': symbol },
-      { $set: updates },
-      { new: true }
-    );
+    const investment = await this.findByUserId(userId);
+    const item = investment.portfolio?.find((p: any) => p.symbol === symbol);
+    if (!item) throw new Error('Item not found');
+
+    return await prisma.portfolioItem.update({
+      where: { id: item.id },
+      data: updates
+    });
   }
 
   async updatePortfolioPrices(userId: string, prices: { symbol: string; price: number }[]) {
     const investment = await this.findByUserId(userId);
-    const portfolio = investment.portfolio;
-
-    portfolio.forEach((item: any) => {
+    
+    for (const item of investment.portfolio || []) {
       const priceUpdate = prices.find(p => p.symbol === item.symbol);
       if (priceUpdate) {
-        item.currentPrice = priceUpdate.price;
+        await prisma.portfolioItem.update({
+          where: { id: item.id },
+          data: { currentPrice: priceUpdate.price }
+        });
       }
-    });
+    }
 
-    return await Investment.findOneAndUpdate(
-      { userId },
-      { portfolio },
-      { new: true }
-    );
+    return await this.findByUserId(userId);
   }
 }
