@@ -1,7 +1,7 @@
 import { User, Wallet, Transaction, RegisterData, LoginData, TransferData, AddMoneyData } from '../types';
 
 interface SearchResult {
-  _id: string;
+  id: string;
   name: string;
   email: string;
 }
