@@ -1,8 +1,7 @@
 import { Request } from 'express';
-import { Types } from 'mongoose';
 
 export interface IUser {
-  _id?: Types.ObjectId;
+  id?: string;
   name: string;
   email: string;
   password: string;
@@ -13,8 +12,8 @@ export interface IUser {
 }
 
 export interface IWallet {
-  _id?: Types.ObjectId;
-  userId: Types.ObjectId;
+  id?: string;
+  userId: string;
   balance: number;
   createdAt?: Date;
   updatedAt?: Date;
@@ -29,9 +28,11 @@ export enum TransactionStatus {
 export type TransactionStatusType = 'pending' | 'completed' | 'failed';
 
 export interface ITransaction {
-  _id?: Types.ObjectId;
-  sender?: Types.ObjectId;
-  receiver?: Types.ObjectId;
+  id?: string;
+  senderId?: string;
+  receiverId?: string;
+  sender?: any;
+  receiver?: any;
   amount: number;
   status?: TransactionStatusType;
   category?: string;
@@ -43,7 +44,7 @@ export interface ITransaction {
 }
 
 export interface IAuthResponse {
-  _id: string;
+  id: string;
   name: string;
   email: string;
   token: string;

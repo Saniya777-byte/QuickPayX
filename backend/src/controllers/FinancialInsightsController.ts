@@ -9,14 +9,14 @@ const investmentRepository = new InvestmentRepository();
 export class FinancialInsightsController {
   async getInsights(req: Request, res: Response) {
     try {
-      const userId = (req as any).user._id;
+      const userId = (req as any).user;
 
       // Get user's transactions
       const transactions = await transactionRepository.findByUserId(userId);
 
       // Get user's portfolio
       const investment = await investmentRepository.findByUserId(userId);
-      const portfolio = investment?.portfolio ? Array.from(investment.portfolio) : [];
+      const portfolio = investment?.portfolio || [];
       const virtualBalance = investment?.virtualBalance || 0;
 
       // Generate insights
@@ -39,7 +39,7 @@ export class FinancialInsightsController {
 
   async askQuery(req: Request, res: Response) {
     try {
-      const userId = (req as any).user._id;
+      const userId = (req as any).user;
       const { query } = req.body;
 
       if (!query) {
@@ -54,7 +54,7 @@ export class FinancialInsightsController {
 
       // Get user's portfolio
       const investment = await investmentRepository.findByUserId(userId);
-      const portfolio = investment?.portfolio ? Array.from(investment.portfolio) : [];
+      const portfolio = investment?.portfolio || [];
 
       // Answer query
       const answer = financialInsightsService.answerQuery(query, transactions as any, portfolio, userId);

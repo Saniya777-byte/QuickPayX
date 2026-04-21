@@ -6,7 +6,7 @@ const userRepository = new UserRepository();
 export class SecurityController {
   async setTransactionPin(req: Request, res: Response) {
     try {
-      const userId = (req as any).user._id;
+      const userId = (req as any).user;
       const { pin } = req.body;
 
       if (!pin) {
@@ -40,7 +40,7 @@ export class SecurityController {
 
   async validateTransactionPin(req: Request, res: Response) {
     try {
-      const userId = (req as any).user._id;
+      const userId = (req as any).user;
       const { pin } = req.body;
 
       if (!pin) {
