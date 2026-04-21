@@ -1,0 +1,123 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TransactionStatus {
+  pending
+  completed
+  failed
+}
+
+enum TransactionCategory {
+  food
+  bills
+  travel
+  shopping
+  entertainment
+  health
+  education
+  transfer
+  other
+}
+
+enum SavingsGoalCategory {
+  emergency
+  vacation
+  car
+  home
+  education
+  investment
+  other
+}
+
+enum SavingsGoalStatus {
+  active
+  completed
+  paused
+}
+
+model User {
+  id              String   @id @default(uuid())
+  name            String
+  email           String   @unique
+  password        String
+  bankBalance     Float    @default(10000)
+  transactionPin  String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  wallet          Wallet?
+  investment      Investment?
+  transactions    Transaction[] @relation("SenderTransactions")
+  receivedTransactions Transaction[] @relation("ReceiverTransactions")
+  savingsGoals    SavingsGoal[]
+}
+
+model Wallet {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  balance   Float    @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Transaction {
+  id           String             @id @default(uuid())
+  senderId     String?
+  receiverId   String?
+  amount       Float
+  status       TransactionStatus  @default(pending)
+  category     TransactionCategory @default(other)
+  description  String
+  isSuspicious Boolean            @default(false)
+  fraudReason  String?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  sender       User?              @relation("SenderTransactions", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver     User?              @relation("ReceiverTransactions", fields: [receiverId], references: [id], onDelete: Cascade)
+}
+
+model Investment {
+  id             String   @id @default(uuid())
+  userId         String   @unique
+  virtualBalance Float    @default(10000)
+  portfolio      PortfolioItem[]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PortfolioItem {
+  id            String   @id @default(uuid())
+  investmentId  String
+  symbol        String
+  name          String
+  quantity      Float
+  averagePrice  Float
+  currentPrice  Float    @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  investment    Investment @relation(fields: [investmentId], references: [id], onDelete: Cascade)
+}
+
+model SavingsGoal {
+  id            String               @id @default(uuid())
+  userId        String
+  name          String
+  targetAmount  Float
+  currentAmount Float                @default(0)
+  deadline      DateTime?
+  category      SavingsGoalCategory @default(other)
+  status        SavingsGoalStatus    @default(active)
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+  user          User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
