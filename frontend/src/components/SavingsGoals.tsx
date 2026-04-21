@@ -5,7 +5,7 @@ import { apiService } from '../services/api';
 import { Target, Plus, Trash2, TrendingUp, Calendar, DollarSign, X, CheckCircle } from 'lucide-react';
 
 interface SavingsGoal {
-  _id: string;
+  id: string;
   name: string;
   targetAmount: number;
   currentAmount: number;
@@ -93,7 +93,7 @@ export default function SavingsGoals() {
       }
 
       if (selectedGoal) {
-        await apiService.addGoalProgress(selectedGoal._id, amount);
+        await apiService.addGoalProgress(selectedGoal.id, amount);
         setAddProgress('');
         setShowAddProgressModal(false);
         setSelectedGoal(null);
@@ -196,7 +196,7 @@ export default function SavingsGoals() {
             
             return (
               <div
-                key={goal._id}
+                key={goal.id}
                 className={`bg-gray-900/30 rounded-xl p-4 border ${isCompleted ? 'border-emerald-500/30' : 'border-gray-800/50'}`}
               >
                 <div className="flex items-start justify-between mb-3">
@@ -212,7 +212,7 @@ export default function SavingsGoals() {
                   <div className="flex items-center gap-2">
                     {isCompleted && <CheckCircle className="w-5 h-5 text-emerald-500" />}
                     <button
-                      onClick={() => handleDeleteGoal(goal._id)}
+                      onClick={() => handleDeleteGoal(goal.id)}
                       className="text-gray-500 hover:text-red-400 transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />

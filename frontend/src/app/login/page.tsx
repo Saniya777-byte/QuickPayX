@@ -28,6 +28,11 @@ export default function LoginPage() {
     }
   };
 
+  const useTestAccount = () => {
+    setEmail('test@gmail.com');
+    setPassword('12345678');
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#0a0e27] p-4 relative overflow-hidden">
       {/* Background glows */}
@@ -63,6 +68,15 @@ export default function LoginPage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Test Account Button */}
+            <button
+              type="button"
+              onClick={useTestAccount}
+              className="w-full bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 py-2 px-4 rounded-xl font-medium transition-all text-sm border border-blue-500/30"
+            >
+              Use Test Account (test@gmail.com)
+            </button>
+
             {/* Email */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-400 mb-2">

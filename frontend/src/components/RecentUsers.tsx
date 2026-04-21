@@ -5,7 +5,7 @@ import { apiService } from '../services/api';
 import { UserPlus, ChevronRight } from 'lucide-react';
 
 interface SearchResult {
-  _id: string;
+  id: string;
   name: string;
   email: string;
 }
@@ -68,9 +68,9 @@ export default function RecentUsers({ onUserSelect }: RecentUsersProps) {
     <div className="space-y-2">
       {users.map((user) => (
         <button
-          key={user._id}
+          key={user.id}
           type="button"
-          onClick={() => onUserSelect(user._id, user.name)}
+          onClick={() => onUserSelect(user.id, user.name)}
           className="w-full flex items-center gap-3 p-3 bg-gray-900/40 hover:bg-gray-800/60 rounded-xl border border-gray-800/40 hover:border-emerald-500/20 transition-all group text-left"
         >
           <div className="w-9 h-9 bg-gradient-to-br from-emerald-400/80 to-emerald-600/80 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0">

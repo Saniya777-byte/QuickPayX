@@ -5,7 +5,7 @@ import { apiService } from '../services/api';
 import { Search, X, User } from 'lucide-react';
 
 interface SearchResult {
-  _id: string;
+  id: string;
   name: string;
   email: string;
 }
@@ -70,7 +70,7 @@ export default function UserSearch({ onUserSelect, selectedUserId }: UserSearchP
     setQuery(user.name);
     setShowDropdown(false);
     // Call directly — no useEffect needed, avoids infinite re-render
-    onUserSelect(user._id, user.name);
+    onUserSelect(user.id, user.name);
   };
 
   const clearSearch = () => {
@@ -118,11 +118,11 @@ export default function UserSearch({ onUserSelect, selectedUserId }: UserSearchP
               <p className="text-gray-600 text-xs px-4 pt-3 pb-1">{results.length} user{results.length !== 1 ? 's' : ''} found</p>
               {results.map((user) => (
                 <button
-                  key={user._id}
+                  key={user.id}
                   type="button"
                   onClick={() => handleUserClick(user)}
                   className={`w-full px-4 py-3 text-left hover:bg-gray-800/60 transition-colors flex items-center gap-3 ${
-                    selectedUserId === user._id ? 'bg-emerald-500/5' : ''
+                    selectedUserId === user.id ? 'bg-emerald-500/5' : ''
                   }`}
                 >
                   <div className="w-9 h-9 bg-gradient-to-br from-emerald-400/80 to-emerald-600/80 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
@@ -132,7 +132,7 @@ export default function UserSearch({ onUserSelect, selectedUserId }: UserSearchP
                     <p className="text-white font-medium text-sm truncate">{user.name}</p>
                     <p className="text-gray-500 text-xs truncate">{user.email}</p>
                   </div>
-                  {selectedUserId === user._id && (
+                  {selectedUserId === user.id && (
                     <span className="ml-auto text-emerald-400 text-xs flex-shrink-0">Selected</span>
                   )}
                 </button>

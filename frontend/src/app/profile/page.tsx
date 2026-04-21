@@ -27,8 +27,8 @@ export default function ProfilePage() {
   };
 
   const copyUserId = () => {
-    if (user?._id) {
-      navigator.clipboard.writeText(user._id).then(() => {
+    if (user?.id) {
+      navigator.clipboard.writeText(user.id).then(() => {
         setCopiedId(true);
         setTimeout(() => setCopiedId(false), 2000);
       });
@@ -131,7 +131,7 @@ export default function ProfilePage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-gray-500 text-xs">User ID</p>
-                  <p className="text-white font-mono text-xs truncate">{user?._id}</p>
+                  <p className="text-white font-mono text-xs truncate">{user?.id}</p>
                 </div>
                 <button
                   onClick={copyUserId}

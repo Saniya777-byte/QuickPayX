@@ -187,9 +187,9 @@ export default function DashboardOverview() {
             ) : (
               <div className="space-y-3">
                 {recentTransactions.map((tx) => {
-                  const isSent = tx.sender?._id === user?._id;
+                  const isSent = tx.sender?.id === user?.id;
                   return (
-                    <div key={tx._id} className="flex items-center justify-between p-3.5 bg-gray-900/40 rounded-xl border border-gray-800/40 hover:border-gray-700/50 transition-all">
+                    <div key={tx.id} className="flex items-center justify-between p-3.5 bg-gray-900/40 rounded-xl border border-gray-800/40 hover:border-gray-700/50 transition-all">
                       <div className="flex items-center gap-3">
                         <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${isSent ? 'bg-red-500/10' : 'bg-emerald-500/10'}`}>
                           {isSent 

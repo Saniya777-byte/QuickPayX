@@ -54,8 +54,8 @@ export default function TransactionsPage() {
   const filteredTransactions = transactions.filter(tx => {
     const matchesFilter =
       filter === 'all' ? true :
-      filter === 'sent' ? tx.sender?._id === user?._id :
-      tx.receiver?._id === user?._id;
+      filter === 'sent' ? tx.sender?.id === user?.id :
+      tx.receiver?.id === user?.id;
 
     const query = searchQuery.toLowerCase();
     const matchesSearch = !query || (
@@ -71,10 +71,10 @@ export default function TransactionsPage() {
 
   // Summary stats
   const sentTotal = transactions
-    .filter(tx => tx.sender?._id === user?._id)
+    .filter(tx => tx.sender?.id === user?.id)
     .reduce((s, tx) => s + tx.amount, 0);
   const receivedTotal = transactions
-    .filter(tx => tx.receiver?._id === user?._id)
+    .filter(tx => tx.receiver?.id === user?.id)
     .reduce((s, tx) => s + tx.amount, 0);
 
   if (loading) {
@@ -197,10 +197,10 @@ export default function TransactionsPage() {
                 </div>
                 <div className="space-y-2">
                   {txs.map((tx) => {
-                    const isSent = tx.sender?._id === user?._id;
+                    const isSent = tx.sender?.id === user?.id;
                     return (
                       <div
-                        key={tx._id}
+                        key={tx.id}
                         className="bg-[#1a1f2e] rounded-xl p-4 border border-gray-800/50 hover:border-gray-700/60 transition-all flex items-center justify-between gap-4"
                       >
                         <div className="flex items-center gap-3 min-w-0">

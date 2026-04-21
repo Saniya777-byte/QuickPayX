@@ -1,12 +1,12 @@
 export interface User {
-  _id: string;
+  id: string;
   name: string;
   email: string;
   token: string;
 }
 
 export interface Wallet {
-  _id: string;
+  id: string;
   userId: string;
   balance: number;
   bankBalance: number;
@@ -15,14 +15,14 @@ export interface Wallet {
 }
 
 export interface Transaction {
-  _id: string;
+  id: string;
   sender?: {
-    _id: string;
+    id: string;
     name: string;
     email: string;
   };
   receiver?: {
-    _id: string;
+    id: string;
     name: string;
     email: string;
   };
@@ -56,7 +56,7 @@ export interface AddMoneyData {
 }
 
 export interface SearchResult {
-  _id: string;
+  id: string;
   name: string;
   email: string;
 }
