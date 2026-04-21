@@ -1,4 +1,3 @@
-import mongoose from "mongoose";
 import { TransactionRepository } from "../repositories/TransactionRepository";
 import { categorizeTransaction } from "./aiCategorization";
 
@@ -25,7 +24,7 @@ class AnalyticsService {
 
   async getSpendingByCategory(userId: string): Promise<SpendingByCategory[]> {
     const transactions = await this.transactionRepository.findByUserId(userId);
-    const completedTransactions = transactions.filter(t => t.status === 'completed' && t.sender.toString() === userId);
+    const completedTransactions = transactions.filter(t => t.status === 'completed' && t.senderId === userId);
     
     const categoryMap = new Map<string, { amount: number; count: number }>();
     
@@ -57,9 +56,9 @@ class AnalyticsService {
       
       const current = monthlyMap.get(monthKey) || { spent: 0, received: 0 };
       
-      if (transaction.sender.toString() === userId) {
+      if (transaction.senderId === userId) {
         current.spent += transaction.amount;
-      } else if (transaction.receiver.toString() === userId) {
+      } else if (transaction.receiverId === userId) {
         current.received += transaction.amount;
       }
       
@@ -87,7 +86,7 @@ class AnalyticsService {
 
   async getSpendingInsights(userId: string): Promise<Insight[]> {
     const transactions = await this.transactionRepository.findByUserId(userId);
-    const completedTransactions = transactions.filter(t => t.status === 'completed' && t.sender.toString() === userId);
+    const completedTransactions = transactions.filter(t => t.status === 'completed' && t.senderId === userId);
     
     const insights: Insight[] = [];
     
@@ -174,11 +173,11 @@ class AnalyticsService {
       let contactId: string;
       let contactName: string;
       
-      if (transaction.sender.toString() === userId) {
-        contactId = transaction.receiver.toString();
+      if (transaction.senderId === userId) {
+        contactId = transaction.receiverId!;
         contactName = 'Receiver'; // Would need to populate user name
       } else {
-        contactId = transaction.sender.toString();
+        contactId = transaction.senderId!;
         contactName = 'Sender';
       }
       
@@ -199,8 +198,8 @@ class AnalyticsService {
     const transactions = await this.transactionRepository.findByUserId(userId);
     const completedTransactions = transactions.filter(t => t.status === 'completed');
     
-    const userSent = completedTransactions.filter(t => t.sender.toString() === userId);
-    const userReceived = completedTransactions.filter(t => t.receiver.toString() === userId);
+    const userSent = completedTransactions.filter(t => t.senderId === userId);
+    const userReceived = completedTransactions.filter(t => t.receiverId === userId);
     
     const totalSent = userSent.reduce((sum, t) => sum + t.amount, 0);
     const totalReceived = userReceived.reduce((sum, t) => sum + t.amount, 0);

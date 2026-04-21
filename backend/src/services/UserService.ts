@@ -24,13 +24,18 @@ class UserService {
     // Extract unique user IDs (excluding current user)
     const userIds = new Set<string>();
     recentTransactions.forEach((tx: any) => {
-      if (tx.sender && tx.sender._id.toString() !== currentUserId) {
-        userIds.add(tx.sender._id.toString());
+      if (tx.sender && tx.sender.id !== currentUserId) {
+        userIds.add(tx.sender.id);
       }
-      if (tx.receiver && tx.receiver._id.toString() !== currentUserId) {
-        userIds.add(tx.receiver._id.toString());
+      if (tx.receiver && tx.receiver.id !== currentUserId) {
+        userIds.add(tx.receiver.id);
       }
     });
+
+    // If no recent transactions, return all other users
+    if (userIds.size === 0) {
+      return this.userRepository.findAllExcept(currentUserId);
+    }
 
     // Fetch user details for unique IDs
     const users = await this.userRepository.findByIds(Array.from(userIds));

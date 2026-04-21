@@ -22,18 +22,16 @@ class AuthService {
       name,
       email,
       password: hashedPassword,
+      bankBalance: 10000,
     });
 
-    // Create wallet for the user
-    await this.walletRepository.create({
-      userId: user._id!,
-      balance: 0,
-    });
+    // Create wallet for the user with 10000 balance
+    await this.walletRepository.setBalance(user.id!, 10000);
 
-    const token = generateToken(user._id!.toString());
+    const token = generateToken(user.id!.toString());
 
     return {
-      _id: user._id!.toString(),
+      id: user.id!.toString(),
       name: user.name,
       email: user.email,
       token,
@@ -53,10 +51,10 @@ class AuthService {
       throw new Error("Invalid email or password");
     }
 
-    const token = generateToken(user._id!.toString());
+    const token = generateToken(user.id!.toString());
 
     return {
-      _id: user._id!.toString(),
+      id: user.id!.toString(),
       name: user.name,
       email: user.email,
       token,

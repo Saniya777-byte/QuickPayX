@@ -4,11 +4,13 @@
 import { categorizeTransaction } from './aiCategorization';
 
 interface Transaction {
-  _id: string;
+  id: string;
   amount: number;
   createdAt: Date;
-  sender?: { _id: string };
-  receiver?: { _id: string; name: string };
+  senderId?: string;
+  receiverId?: string;
+  sender?: { id: string };
+  receiver?: { id: string; name: string };
   description?: string;
 }
 
@@ -48,7 +50,7 @@ export class FinancialInsightsService {
 
     // Filter user's sent transactions
     const userTransactions = transactions.filter(
-      tx => tx.sender?._id === userId
+      tx => tx.senderId === userId
     );
 
     if (userTransactions.length === 0) {
@@ -402,13 +404,13 @@ export class FinancialInsightsService {
 
     // Spending queries
     if (lowerQuery.includes('how much') && lowerQuery.includes('spend')) {
-      const userTransactions = transactions.filter(tx => tx.sender?._id === userId);
+      const userTransactions = transactions.filter(tx => tx.senderId === userId);
       const monthlyTotal = this.calculateMonthlySpending(userTransactions);
       return `You've spent $${monthlyTotal.toFixed(2)} this month.`;
     }
 
     if (lowerQuery.includes('top') && lowerQuery.includes('expense')) {
-      const userTransactions = transactions.filter(tx => tx.sender?._id === userId);
+      const userTransactions = transactions.filter(tx => tx.senderId === userId);
       const categorized = this.categorizeSpending(userTransactions);
       const top = this.getTopSpendingCategory(categorized);
       if (top) {

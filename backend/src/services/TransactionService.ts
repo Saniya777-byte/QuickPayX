@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import { prisma } from "../lib/prisma";
 import { WalletRepository } from "../repositories/WalletRepository";
 import { TransactionRepository } from "../repositories/TransactionRepository";
 import { UserRepository } from "../repositories/UserRepository";
@@ -35,7 +35,7 @@ class TransactionService {
     // Get sender's transaction history for fraud detection
     const senderTransactions = await this.transactionRepository.findByUserId(senderId);
     const senderSentTransactions = senderTransactions
-      .filter(t => t.status === 'completed' && t.sender.toString() === senderId)
+      .filter(t => t.status === 'completed' && t.senderId === senderId)
       .map(t => t.amount);
     
     const senderAvgAmount = senderSentTransactions.length > 0 
@@ -44,7 +44,7 @@ class TransactionService {
 
     // Check if recipient is new
     const previousTransactionsToReceiver = senderTransactions.filter(
-      t => t.receiver.toString() === receiverId && t.status === 'completed'
+      t => t.receiverId === receiverId && t.status === 'completed'
     );
     const isNewRecipient = previousTransactionsToReceiver.length === 0;
 
@@ -58,45 +58,52 @@ class TransactionService {
     // Auto-categorize if not provided
     const finalCategory = category || categorizeTransaction(description || '');
 
-    const session = await mongoose.startSession();
-    session.startTransaction();
-
     try {
-      const senderWallet = await this.walletRepository.findByUserId(senderId);
-      if (!senderWallet || senderWallet.balance < amount) {
-        throw new Error("Insufficient balance");
-      }
+      const transaction = await prisma.$transaction(async (tx) => {
+        const senderWallet = await tx.wallet.findUnique({ where: { userId: senderId } });
+        if (!senderWallet || senderWallet.balance < amount) {
+          throw new Error("Insufficient balance");
+        }
 
-      const receiverWallet = await this.walletRepository.findByUserId(receiverId);
-      if (!receiverWallet) {
-        throw new Error("Receiver wallet not found");
-      }
+        let receiverWallet = await tx.wallet.findUnique({ where: { userId: receiverId } });
+        if (!receiverWallet) {
+          // Create receiver wallet with 0 balance if it doesn't exist
+          receiverWallet = await tx.wallet.create({
+            data: { userId: receiverId, balance: 0 }
+          });
+        }
 
-      // Deduct from sender
-      await this.walletRepository.setBalance(senderId, senderWallet.balance - amount);
+        // Deduct from sender
+        await tx.wallet.update({
+          where: { userId: senderId },
+          data: { balance: senderWallet.balance - amount }
+        });
 
-      // Add to receiver
-      await this.walletRepository.setBalance(receiverId, receiverWallet.balance + amount);
+        // Add to receiver
+        await tx.wallet.update({
+          where: { userId: receiverId },
+          data: { balance: receiverWallet.balance + amount }
+        });
 
-      // Create transaction with completed status
-      const transaction = await this.transactionRepository.create({
-        sender: new mongoose.Types.ObjectId(senderId),
-        receiver: new mongoose.Types.ObjectId(receiverId),
-        amount,
-        status: 'completed' as TransactionStatusType,
-        category: finalCategory,
-        description: description || '',
-        isSuspicious: fraudResult.isSuspicious,
-        fraudReason: fraudResult.isSuspicious ? fraudResult.reason : undefined,
+        // Create transaction with completed status
+        const newTransaction = await tx.transaction.create({
+          data: {
+            senderId,
+            receiverId,
+            amount,
+            status: 'completed',
+            category: finalCategory as any,
+            description: description || '',
+            isSuspicious: fraudResult.isSuspicious,
+            fraudReason: fraudResult.isSuspicious ? fraudResult.reason : undefined,
+          }
+        });
+
+        return newTransaction;
       });
 
-      await session.commitTransaction();
-      session.endSession();
-
-      return transaction;
+      return transaction as ITransaction;
     } catch (error: any) {
-      await session.abortTransaction();
-      session.endSession();
       throw error;
     }
   }

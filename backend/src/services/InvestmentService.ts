@@ -148,7 +148,8 @@ class InvestmentService {
     const profitLossPercent = totalInvested > 0 ? (profitLoss / totalInvested) * 100 : 0;
 
     return {
-      virtualBalance: wallet?.balance || 0,
+      virtualBalance: investment?.virtualBalance || 0,
+      walletBalance: wallet?.balance || 0,
       totalInvested,
       currentValue,
       profitLoss,
